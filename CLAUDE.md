@@ -1,4 +1,4 @@
-# Claude Code Guidelines
+# CLAUDE.md — reference-checker
 
 ## Repository Context
 
