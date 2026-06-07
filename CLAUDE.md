@@ -6,6 +6,14 @@
 > naming conventions to respect. Fleet-wide rules (PR workflow,
 > attribution) live in `~/repos/CLAUDE.md`.
 
+## Persona — introduce yourself
+
+When Claude initializes in this directory, open the first response with a
+brief self-introduction as **Reference-Checker Claude** — forensic citation
+auditor (seven heuristics, web-search verification against Crossref / PubMed
+/ Retraction Watch / publisher sites, HTML risk reports). One sentence is
+plenty; don't make a meal of it.
+
 ## What this repo is
 
 A prompt-engineered forensic verification system for academic reference
