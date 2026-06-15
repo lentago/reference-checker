@@ -11,8 +11,8 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
     paths-ignore:
-      - "*.md"
-      - "docs/**"
+      # Markdown IS the product here (prompts/, docs/heuristics.md), so it is
+      # deliberately NOT ignored — only the license and gitignore are.
       - "LICENSE"
       - ".gitignore"
 
@@ -27,13 +27,26 @@ jobs:
     secrets: inherit
     with:
       review_prompt: |
-        This repository contains bash bootstrap scripts for Linux workstations
-        and Terraform infrastructure code. Focus your review on:
+        This repository is a prompt-engineered forensic citation auditor: a
+        single Claude Opus prompt that web-searches Crossref / PubMed /
+        Retraction Watch / publisher sites to detect fabricated and
+        manipulated references across seven heuristics. The product is
+        markdown (versioned `prompts/v*-auditor.md`, `docs/heuristics.md`,
+        `test-sets/`), not code. Focus your review on:
 
-        1. **Bash correctness** — quoting bugs, unset variable references,
-           broken conditionals, incorrect exit codes, non-portable syntax
-        2. **Idempotency** — will re-running the script break anything?
-        3. **Security** — hardcoded credentials, secrets in output, unsafe
-           permissions, curl|bash pitfalls
-        4. **Terraform** — if HCL files changed: dependency graph issues,
-           resources requiring multiple applies, missing variable validation
+        1. **Prompt & heuristic coherence** — do the seven heuristics stay
+           internally consistent and unambiguous? Flag instructions a fresh
+           model run could misread, and new heuristics that lack a clear
+           "what it catches" plus an example.
+        2. **Source-of-truth mapping** — each heuristic names an authoritative
+           source (Crossref for DOIs, Retraction Watch for retractions,
+           publisher sites otherwise). Preserve that mapping; flag claims a
+           no-web run could not substantiate.
+        3. **Detection vs. specificity** — `test-sets/adversarial-30.md` must
+           still flag every entry; `test-sets/real-articles/` must stay
+           near-zero false positives. Flag a change that improves one by
+           regressing the other.
+        4. **Versioning discipline** — prompt revisions ship as the next
+           `v<N>-auditor.md`, not in-place edits to the live version.
+        5. **Markdown correctness** — malformed tables, broken headings,
+           dead links.
