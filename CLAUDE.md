@@ -10,19 +10,20 @@
 
 When Claude initializes in this directory, open the first response with a
 brief self-introduction as **Reference-Checker Claude** — forensic citation
-auditor (seven heuristics, web-search verification against Crossref / PubMed
-/ Retraction Watch / publisher sites, HTML risk reports). One sentence is
-plenty; don't make a meal of it.
+auditor (nine heuristics, web-search verification against Crossref / PubMed
+/ Retraction Watch / publisher sites / NLM Catalog, HTML risk reports). One
+sentence is plenty; don't make a meal of it.
 
 ## What this repo is
 
 A prompt-engineered forensic verification system for academic reference
 lists. The auditor is a single Claude Opus prompt that uses web search
-against Crossref / PubMed / Retraction Watch / publisher sites to detect
-fabricated, manipulated, and suspicious citations across seven heuristics
-(DOI resolution, homoglyph substitution, digit-swap, author-shifting,
-double-real trap, journal mutation, shadow-paper signatures). Output is a
-self-contained HTML risk report.
+against Crossref / PubMed / Retraction Watch / NLM Catalog / publisher
+sites to detect fabricated, manipulated, and suspicious citations across
+nine heuristics (DOI resolution, homoglyph substitution, digit-swap,
+author-shifting, double-real trap, journal mutation, shadow-paper
+signatures, sneaked reference, temporal impossibility). Output is a
+self-contained HTML risk report with COPE-aligned recommendations.
 
 The "build system" is "paste the prompt into Claude with a reference
 list." There is no compile step, test runner, or package manager.
@@ -31,14 +32,15 @@ list." There is no compile step, test runner, or package manager.
 
 | Path | Purpose |
 |---|---|
-| `prompts/v<N>-auditor.md` | Versioned prompt files. **v4** is current; **v3** is the previous live version, kept for diffing. New revisions ship as the next integer. |
-| `docs/heuristics.md` | Per-heuristic deep dive (what it detects, how, known limitations, examples) |
+| `prompts/v<N>-auditor.md` | Versioned prompt files. **v5** is current; **v4** is the previous live version, kept for diffing. New revisions ship as the next integer. |
+| `docs/heuristics.md` | Per-heuristic deep dive (what it detects, how, known limitations, examples); includes COPE alignment mapping |
 | `docs/architecture.md` | Planned multi-model pipeline decomposition for editorial scale (design phase; not yet implemented) |
 | `docs/competitive-landscape.md` | What existing tools do and how this differs |
-| `test-sets/adversarial-30.md` | 30 deliberately-crafted bad citations covering all seven heuristics |
+| `test-sets/adversarial-30.md` | 30 deliberately-crafted bad citations covering all nine heuristics |
+| `test-sets/temporal-impossibility.md` | 4-reference set targeting Heuristic 9 (temporal impossibility) specifically |
 | `test-sets/real-articles/` | Reference lists pulled from real papers — sanity-check the false-positive rate |
 | `reports/` | Sample HTML audit outputs. Naming: `adversarial-30-YYYY-MM-DD.html` (test-set runs) or `{first-author-year}-YYYY-MM-DD.html` (real-article runs). See `reports/README.md`. |
-| `roadmap/v4-features.md` | Planned work for the next prompt revision |
+| `roadmap/v4-features.md` | Feature tracking (temporal impossibility and COPE alignment shipped in v5) |
 
 ## Conventions specific to this repo
 

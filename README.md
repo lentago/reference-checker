@@ -29,9 +29,9 @@ The auditor runs as a structured prompt on Anthropic's Claude (Opus), using live
 - **Retraction Watch** — Known retraction and expression-of-concern database
 - **Publisher sites** — Direct verification against journal archives
 
-### Forensic Heuristics (v4)
+### Forensic Heuristics (v5)
 
-Each reference is evaluated against eight forensic heuristics designed to catch progressively more sophisticated fabrication:
+Each reference is evaluated against nine forensic heuristics designed to catch progressively more sophisticated fabrication:
 
 | # | Heuristic | What It Catches |
 |---|---|---|
@@ -43,6 +43,7 @@ Each reference is evaluated against eight forensic heuristics designed to catch 
 | 6 | **Journal Mutation** | Slightly altered journal titles (word substitution, abbreviation manipulation) that point to nonexistent or different journals |
 | 7 | **Shadow-Paper Signatures** | Citations with plausible metadata that match no known publication — fully fabricated but constructed to look legitimate |
 | 8 | **Sneaked Reference** | References present in the list but never cited in the manuscript body — reference-list padding designed to inflate the apparent evidence base. **Mode B (full manuscript) only**; skipped in Mode A (reference list only). |
+| 9 | **Temporal Impossibility** | Citations dated before the journal's founding year, after the manuscript's submission date (without ahead-of-print/preprint confirmation), or citing a volume/issue number that cannot have existed for the stated year. ([#6](../../issues/6)) |
 
 ### Risk Classification
 
@@ -83,7 +84,7 @@ The auditor produces a self-contained HTML report with six sections, designed fo
 
 ### Running an Audit
 
-1. Provide the prompt (see `prompts/v4-auditor.md`) to Claude with web search enabled.
+1. Provide the prompt (see `prompts/v5-auditor.md`) to Claude with web search enabled.
 2. Paste or upload the reference list to be audited.
 3. The auditor will systematically verify each reference and produce the HTML report.
 
@@ -115,12 +116,15 @@ Multiple real articles from JOGNN, MCN, and related nursing journals verified to
 
 ## Roadmap
 
+### Shipped in v5
+- **Temporal impossibility checks** — Heuristic 9: citations dated before the journal's founding year, after the manuscript's submission date (with ahead-of-print/preprint exception), or citing a volume/issue that cannot have existed for the stated year. Dedicated test set at `test-sets/temporal-impossibility.md`. ([#6](../../issues/6))
+- **COPE flowchart alignment** — Fully mapped. Structured mapping from risk tier to five specific COPE flowcharts (suspected fabricated data in submitted manuscript, suspected fabricated data in published article, authorship disputes, suspected ghost/gift/guest authorship, suspected redundant publication), with three escalation levels (author query, editorial investigation, publisher/institution notification). ([#9](../../issues/9))
+
 ### Shipped in v4
-- **Sneaked-reference detection** — References present in the list but never cited in the manuscript body (Mode B / full manuscript). Shipped as Heuristic 8. (Closes [#5](../../issues/5).)
-- **COPE flowchart alignment** — *Partially shipped.* A COPE note for H-tier findings already appears in the Forensic Appendix. Full structured flowchart mapping tracked in [#9](../../issues/9).
+- **Sneaked-reference detection** — References present in the list but never cited in the manuscript body (Mode B / full manuscript). Shipped as Heuristic 8. ([#5](../../issues/5))
+- **COPE alignment note** — *Partially shipped in v4; fully mapped in v5.* A single H-tier COPE note appeared in the v4 Forensic Appendix; expanded to full structured mapping in v5.
 
 ### Planned
-- **Temporal impossibility checks** — Citations with dates that predate the journal's existence or postdate the submission. ([#6](../../issues/6))
 - **Predatory journal flagging** — Cabells-style methodology for identifying predatory or questionable venues. ([#7](../../issues/7))
 - **Crossref Retraction API integration** — Direct programmatic retraction checking in place of web-search fallback. ([#8](../../issues/8))
 - **Batch-pattern detection** — Statistical analysis across multiple submissions to identify coordinated fabrication campaigns. ([#10](../../issues/10))
@@ -158,17 +162,19 @@ Nothing gets added to the spec until it's been tested. The prompt is the artifac
 ```
 ├── README.md
 ├── prompts/
-│   └── v4-auditor.md          # Current production prompt (v3 retained for diffing)
+│   ├── v5-auditor.md          # Current production prompt
+│   └── v4-auditor.md          # Previous version, retained for diffing
 ├── test-sets/
-│   ├── adversarial-30.md      # Adversarial reference list with layered traps
-│   └── real-articles/         # Real article reference lists used for validation
+│   ├── adversarial-30.md          # 30-reference adversarial set with layered traps
+│   ├── temporal-impossibility.md  # 4-reference set targeting Heuristic 9
+│   └── real-articles/             # Real article reference lists used for validation
 ├── reports/                   # Sample output reports
 ├── docs/
-│   ├── heuristics.md          # Detailed heuristic documentation
+│   ├── heuristics.md          # Detailed heuristic documentation (all 9 heuristics + COPE mapping)
 │   ├── competitive-landscape.md
 │   └── architecture.md        # Pipeline decomposition design
 └── roadmap/
-    └── v4-features.md         # Planned enhancements
+    └── v4-features.md         # Feature tracking (temporal impossibility and COPE alignment shipped in v5)
 ```
 
 ## License

@@ -159,6 +159,34 @@ Orphan references are assigned **Elevated** risk by default. If the orphan also 
 
 ---
 
+## 9. Temporal Impossibility
+
+**What it catches:** Citations whose stated dates are chronologically impossible given the journal's founding year, the manuscript's submission timeline, or the journal's volume and issue history for the stated publication year.
+
+**How it works:** The auditor applies three temporal sub-checks during Stage 2 verification:
+
+- **Pre-existence date:** The auditor retrieves the journal's founding year from Crossref journal metadata (`api.crossref.org/journals/{ISSN}`) and the NLM Catalog. If the reference year predates the journal's first published issue, the reference is flagged. Exception: if the journal changed its name, the auditor verifies whether the cited name was the active title in the cited year — an older name used with a date valid for that period is not a temporal anomaly.
+
+- **Post-submission date:** If the manuscript provides a submission date (in a cover page, header, or metadata block), the auditor compares every reference year against it. References dated after the submission date are flagged unless they can be confirmed as ahead-of-print or preprint publications (arXiv, bioRxiv, medRxiv, or equivalent). This sub-check is skipped when no submission date is present.
+
+- **Impossible volume/issue:** The auditor cross-checks cited volume and issue numbers against the journal's publication history for the stated year. Crossref journal metadata and the publisher's archive are the primary sources. A cited volume or issue that could not have existed in that year is flagged (e.g., citing Volume 58 of a journal that was on Volume 53 in the cited year, or citing Issue 4 of a journal that published only two issues that year).
+
+**Why it matters:** Temporal impossibility is among the most unambiguous fabrication signals in forensic citation analysis. A paper purportedly published in a journal that did not yet exist requires no further inference — it is definitively impossible. Similarly, a future-dated citation in a submitted manuscript (with no preprint provenance) cannot reflect a source the author consulted. These signals require no judgment about intent; they are structural impossibilities.
+
+**Risk calibration:** Elevated in isolation. Escalates to High when combined with any other heuristic trigger on the same reference.
+
+**Limitations:**
+- Crossref and NLM Catalog coverage of journal founding dates is comprehensive for major biomedical journals but may be incomplete for smaller, newer, or recently renamed journals. When founding-date data is unavailable, the sub-check is noted as inconclusive rather than a non-finding.
+- Journal name changes are a common source of false positives. The historical title of a renamed journal may not be immediately apparent from Crossref metadata alone; the NLM Catalog's title history records are the authoritative source for confirming active title periods.
+- Ahead-of-print and preprint exemptions depend on confirming the specific paper's preprint status — a general preprint exception does not apply unless the individual reference can be traced to a preprint repository.
+- Volume/issue history gaps (years with incomplete Crossref coverage) should be noted as inconclusive, not as a temporal impossibility flag.
+
+**Test evidence:** Validated against `test-sets/temporal-impossibility.md`, a three-trap dedicated test set covering pre-existence dating, impossible volume numbering, and post-submission dating.
+
+**Source authority:** Crossref journal metadata (`api.crossref.org/journals`) is authoritative for volume/year mappings and ISSN-level metadata. NLM Catalog is authoritative for journal founding dates, title histories, and ISSN records. Publisher archives are the fallback source when Crossref coverage is incomplete.
+
+---
+
 ## Heuristic Interaction
 
 These heuristics are not independent — they interact and compound:
@@ -168,8 +196,45 @@ These heuristics are not independent — they interact and compound:
 - A **Homoglyph** in a journal title may also trigger Journal Mutation if the substitution creates a string that doesn't match the real journal name.
 - **Digit-Swap** combined with **Author-Shifting** on the same reference is a strong coordinated-fabrication signal.
 - A **Sneaked Reference** (Heuristic 8) that also triggers any other heuristic escalates immediately to High risk — the combination of "never cited in the body" and "metadata anomaly" is the highest-risk finding the auditor can produce.
+- **Temporal Impossibility** (Heuristic 9) in isolation is Elevated; combined with any other heuristic trigger on the same reference, it escalates to High. A pre-existence date combined with a Shadow-Paper finding (the journal didn't exist and the paper can't be found) is a near-certain fabrication.
 
 The risk classification system accounts for these interactions. A reference triggering multiple heuristics receives a higher risk tier than one triggering a single heuristic in isolation.
+
+---
+
+---
+
+## COPE Alignment
+
+The Committee on Publication Ethics (COPE) provides standardized investigation flowcharts for editorial integrity concerns. The following table maps this auditor's heuristic findings to the applicable COPE procedure. COPE flowcharts are publicly available at publicationethics.org/guidance/Flowcharts.
+
+### Flowchart mapping by finding type
+
+| Finding type | Triggered heuristics | Applicable COPE flowchart |
+|---|---|---|
+| Fabricated or falsified citation data — submitted manuscript | H1, H3, H5, H7, H9 (and combinations) | Suspected Fabricated Data in a Submitted Manuscript |
+| Fabricated or falsified citation data — published article | H1, H3, H5, H7, H9 (and combinations) | Suspected Fabricated Data in a Published Article |
+| Author-list credit dispute | H4 (order or removal anomaly) | Authorship Disputes |
+| Undisclosed authorship contribution (ghost/gift/guest) | H4 (addition anomaly) | Suspected Ghost, Gift, or Guest Authorship |
+| Duplicate or redundant publication signals | Reference-level cross-match | Suspected Redundant (Duplicate) Publication |
+
+### Escalation levels
+
+COPE procedures distinguish three escalation levels, which the auditor's recommendations follow:
+
+1. **Author query** — The first step for all H-tier and confirmed E-tier findings. Contact the corresponding author requesting original source documentation: library access records, DOI resolution screenshots, or copies of the original article. Author query is always initiated before escalating.
+
+2. **Editorial investigation** — Convene an independent editorial review if the author query is inconclusive or if the author cannot substantiate the flagged reference. Do not rely solely on author-supplied documentation for H-tier findings.
+
+3. **Publisher or institution notification** — For confirmed fabrication in a submitted manuscript: consider rejection and notify the publisher. For a published article: consider a correction, expression of concern, or retraction, and notify the publisher and/or the author's institution per COPE guidelines.
+
+### When each flowchart applies
+
+- **Suspected Fabricated Data in a Submitted Manuscript** — Use when H-tier citation findings (dead DOIs, shadow papers, Double-Real composites, temporal impossibilities) appear in a manuscript under review that has not yet been accepted or published.
+- **Suspected Fabricated Data in a Published Article** — Use when the same findings appear in an already-published work and are discovered post-publication (e.g., via a post-publication audit or reader complaint).
+- **Authorship Disputes** — Use when H4 (author-shifting) indicates that a legitimate contributor's name has been removed or reordered in a way that misrepresents credit.
+- **Suspected Ghost, Gift, or Guest Authorship** — Use when H4 indicates that an author has been added who does not appear in the authoritative publisher record, suggesting an undisclosed contribution.
+- **Suspected Redundant (Duplicate) Publication** — Use when cross-reference analysis reveals that the same substantive content has been submitted or published more than once without disclosure.
 
 ---
 
@@ -181,3 +246,4 @@ The risk classification system accounts for these interactions. A reference trig
 | **v2** | Added homoglyph detection, digit-swap analysis, shadow-paper signatures |
 | **v3** | Added author-shifting, Double-Real trap detection, journal mutation. Refined scoring formula. Added grey-literature handling. |
 | **v4** | Added sneaked-reference detection (Heuristic 8, Mode B only). Added Mode A/B input detection stage. Added Cochrane Library and government sources to verification set. Added COPE alignment note for H-tier findings. |
+| **v5** | Added temporal impossibility detection (Heuristic 9): pre-existence dating, post-submission dating, and impossible volume/issue checks. Added NLM Catalog to verification sources. Expanded COPE alignment from a single note to a full structured mapping across five flowcharts and three escalation levels. |
