@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forensic Reference Audit — Adversarial-30 — 2026-06-19</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; color: #1a1a2e; background: #f8f9fc; }
+  h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; }
+  h2 { font-size: 1.2rem; font-weight: 700; margin: 2rem 0 0.8rem; padding: 0.4rem 0.8rem; background: #1a1a2e; color: #fff; border-radius: 4px; }
+  h3 { font-size: 1rem; font-weight: 700; margin: 1.2rem 0 0.5rem; color: #1a1a2e; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+  .report-header { background: #1a1a2e; color: #fff; padding: 1.5rem 2rem; margin-bottom: 1.5rem; border-radius: 8px; }
+  .report-header p { color: #a0aec0; font-size: 0.85rem; margin-top: 0.3rem; }
+  .report-header .meta { display: flex; gap: 2rem; margin-top: 0.8rem; font-size: 0.8rem; color: #a0aec0; }
+
+  /* Risk tier colors */
+  .tier-H { background: #dc2626; color: #fff; }
+  .tier-E { background: #ea580c; color: #fff; }
+  .tier-M { background: #ca8a04; color: #fff; }
+  .tier-D { background: #16a34a; color: #fff; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* Dashboard */
+  .dashboard { display: grid; grid-template-columns: auto 1fr; gap: 1.5rem; background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 1rem; }
+  .gauge-area { display: flex; flex-direction: column; align-items: center; }
+  .gauge-label { font-size: 0.75rem; color: #6b7280; margin-top: 0.3rem; }
+  .gauge-score { font-size: 2.5rem; font-weight: 900; color: #dc2626; line-height: 1; }
+  .gauge-sub { font-size: 0.7rem; color: #9ca3af; }
+
+  .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; align-content: start; }
+  .stat-card { background: #f8f9fc; border-radius: 8px; padding: 0.9rem 1rem; border-left: 4px solid #e5e7eb; }
+  .stat-card.high { border-color: #dc2626; }
+  .stat-card.elevated { border-color: #ea580c; }
+  .stat-card.moderate { border-color: #ca8a04; }
+  .stat-card.defensible { border-color: #16a34a; }
+  .stat-card.total { border-color: #1a1a2e; }
+  .stat-card .num { font-size: 2rem; font-weight: 900; line-height: 1; }
+  .stat-card.high .num { color: #dc2626; }
+  .stat-card.elevated .num { color: #ea580c; }
+  .stat-card.moderate .num { color: #ca8a04; }
+  .stat-card.defensible .num { color: #16a34a; }
+  .stat-card.total .num { color: #1a1a2e; }
+  .stat-card .label { font-size: 0.72rem; color: #6b7280; margin-top: 0.2rem; }
+
+  /* Heatmap */
+  .heatmap-section { background: #fff; padding: 1.2rem 1.5rem; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
+  .heatmap { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 0.6rem; }
+  .hm-cell { border-radius: 4px; padding: 5px 4px; text-align: center; font-size: 0.7rem; font-weight: 700; color: #fff; }
+  .hm-cell.H { background: #dc2626; }
+  .hm-cell.E { background: #ea580c; }
+  .hm-cell.M { background: #ca8a04; }
+  .hm-cell.D { background: #16a34a; }
+  .heatmap-legend { display: flex; gap: 1rem; margin-top: 0.6rem; font-size: 0.72rem; color: #6b7280; }
+  .heatmap-legend span { display: flex; align-items: center; gap: 4px; }
+  .heatmap-legend .dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 1rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th { background: #f1f5f9; padding: 0.6rem 0.8rem; text-align: left; font-weight: 700; font-size: 0.75rem; color: #475569; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+  td { padding: 0.55rem 0.8rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  .finding { font-size: 0.78rem; color: #4b5563; margin-top: 0.3rem; padding: 0.3rem 0.5rem; background: #fef3c7; border-left: 3px solid #f59e0b; border-radius: 0 3px 3px 0; }
+  .finding.danger { background: #fee2e2; border-color: #ef4444; }
+
+  /* Suspicion index */
+  .suspicion-list { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); overflow: hidden; margin-bottom: 1rem; }
+  .sus-item { padding: 1rem 1.2rem; border-bottom: 1px solid #f1f5f9; }
+  .sus-item:last-child { border-bottom: none; }
+  .sus-header { display: flex; align-items: flex-start; gap: 0.6rem; margin-bottom: 0.4rem; }
+  .sus-refnum { font-size: 0.7rem; color: #9ca3af; min-width: 1.5rem; }
+  .sus-title { font-weight: 600; font-size: 0.85rem; flex: 1; }
+  .sus-finding { font-size: 0.8rem; color: #4b5563; margin: 0.3rem 0; }
+  .sus-action { font-size: 0.78rem; font-style: italic; color: #6b7280; padding: 0.25rem 0.6rem; background: #f8f9fc; border-radius: 3px; margin-top: 0.3rem; }
+  .sus-action.H { background: #fee2e2; color: #991b1b; }
+  .sus-action.E { background: #fff7ed; color: #9a3412; }
+  .sus-action.M { background: #fffbeb; color: #92400e; }
+  .heuristic-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.3rem; }
+  .htag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 0.68rem; font-weight: 600; background: #e2e8f0; color: #475569; }
+
+  /* APA list */
+  .apa-list { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1rem; }
+  .apa-entry { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.83rem; line-height: 1.6; }
+  .apa-entry:last-child { border-bottom: none; margin-bottom: 0; }
+  .apa-num { font-weight: 700; margin-right: 0.4rem; }
+  .flagged { background: #fee2e2; padding: 2px 6px; border-radius: 3px; font-size: 0.72rem; font-weight: 700; color: #991b1b; margin-left: 0.5rem; }
+  .flagged-M { background: #fffbeb; padding: 2px 6px; border-radius: 3px; font-size: 0.72rem; font-weight: 700; color: #92400e; margin-left: 0.5rem; }
+
+  /* Flow diagram */
+  .flow-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1rem; text-align: center; }
+  .flow-box { display: inline-block; background: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.82rem; font-weight: 600; color: #1e3a5f; }
+  .flow-box.result-H { background: #fee2e2; border-color: #fca5a5; }
+  .flow-box.result-E { background: #ffedd5; border-color: #fdba74; }
+  .flow-box.result-M { background: #fefce8; border-color: #fde047; }
+  .flow-box.result-D { background: #dcfce7; border-color: #86efac; }
+
+  /* Appendix */
+  .appendix-section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 1.5rem; margin-bottom: 1rem; }
+  .appendix-section p { margin-bottom: 0.8rem; font-size: 0.85rem; color: #374151; }
+  .appendix-section ul { padding-left: 1.2rem; font-size: 0.85rem; color: #374151; }
+  .appendix-section ul li { margin-bottom: 0.4rem; }
+  .heuristic-def-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .heuristic-def-table th { background: #f1f5f9; padding: 0.4rem 0.7rem; text-align: left; font-size: 0.75rem; color: #475569; border-bottom: 2px solid #e2e8f0; }
+  .heuristic-def-table td { padding: 0.4rem 0.7rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .cope-notice { background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 6px; padding: 0.8rem 1rem; margin-top: 1rem; font-size: 0.83rem; color: #991b1b; }
+  .score-formula { background: #f1f5f9; border-radius: 6px; padding: 0.8rem 1rem; font-family: monospace; font-size: 0.9rem; margin: 0.6rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="report-header">
+  <h1>Forensic Reference-Integrity Audit Report</h1>
+  <p>Adversarial Test Set — 30 References | Mode A (Reference List Only) | v4 Auditor Prompt</p>
+  <div class="meta">
+    <span>Audit date: 2026-06-19</span>
+    <span>Input: adversarial-30.md (clean reference list)</span>
+    <span>Verification: Live — Crossref, PubMed, Cochrane Library, publisher sites</span>
+    <span>Auditor: Reference-Checker Claude (claude-sonnet-4-6)</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 1: EXECUTIVE DASHBOARD                             -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>Section 1: Executive Dashboard</h2>
+
+<div class="dashboard">
+  <div class="gauge-area">
+    <svg width="180" height="100" viewBox="0 0 180 100">
+      <defs>
+        <clipPath id="halfCircle"><rect x="0" y="0" width="180" height="100"/></clipPath>
+      </defs>
+      <!-- Background arc zones (outerR=85, innerR=60, cx=90, cy=95) -->
+      <!-- Red zone 0-49: ~180° down to ~91.8° (from 180° to 88.2°) -->
+      <path d="M 5,95 A 85,85 0 0,1 90,10" stroke="#dc2626" stroke-width="25" fill="none" clip-path="url(#halfCircle)"/>
+      <!-- Orange zone 50-69 -->
+      <path d="M 90,10 A 85,85 0 0,1 132,22" stroke="#ea580c" stroke-width="25" fill="none" clip-path="url(#halfCircle)"/>
+      <!-- Amber zone 70-84 -->
+      <path d="M 132,22 A 85,85 0 0,1 161,51" stroke="#f59e0b" stroke-width="25" fill="none" clip-path="url(#halfCircle)"/>
+      <!-- Green zone 85-100 -->
+      <path d="M 161,51 A 85,85 0 0,1 175,95" stroke="#16a34a" stroke-width="25" fill="none" clip-path="url(#halfCircle)"/>
+      <!-- Inner white overlay -->
+      <path d="M 17,95 A 73,73 0 0,1 163,95" stroke="#fff" stroke-width="2" fill="none"/>
+      <!-- Needle at score 0 (pointing hard left, ~180°) -->
+      <line x1="90" y1="95" x2="12" y2="95" stroke="#1a1a2e" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="90" cy="95" r="5" fill="#1a1a2e"/>
+      <!-- Zone labels -->
+      <text x="28" y="88" font-size="8" fill="#fff" text-anchor="middle">0–49</text>
+      <text x="86" y="20" font-size="8" fill="#fff" text-anchor="middle">50–69</text>
+      <text x="148" y="38" font-size="8" fill="#fff" text-anchor="middle">70–84</text>
+      <text x="168" y="68" font-size="8" fill="#fff" text-anchor="middle">85+</text>
+    </svg>
+    <div class="gauge-score">0</div>
+    <div class="gauge-label">Reference List Score</div>
+    <div class="gauge-sub">(raw −84, floored to 0)</div>
+    <div class="gauge-sub" style="color:#dc2626;font-weight:700;margin-top:4px;">⚠ Systemic Integrity Concern</div>
+  </div>
+
+  <div class="stat-cards">
+    <div class="stat-card total">
+      <div class="num">30</div>
+      <div class="label">References Audited</div>
+    </div>
+    <div class="stat-card high">
+      <div class="num">9</div>
+      <div class="label">High-Risk Flags</div>
+    </div>
+    <div class="stat-card elevated">
+      <div class="num">7</div>
+      <div class="label">Elevated Flags</div>
+    </div>
+    <div class="stat-card moderate">
+      <div class="num">1</div>
+      <div class="label">Moderate Flags</div>
+    </div>
+    <div class="stat-card defensible">
+      <div class="num">13</div>
+      <div class="label">Defensible (Verified Clean)</div>
+    </div>
+    <div class="stat-card" style="border-color:#6366f1;">
+      <div class="num" style="color:#6366f1;">22</div>
+      <div class="label">DOI-bearing refs</div>
+    </div>
+    <div class="stat-card" style="border-color:#64748b;">
+      <div class="num" style="color:#64748b;">8</div>
+      <div class="label">No-DOI / grey lit</div>
+    </div>
+    <div class="stat-card" style="border-color:#dc2626;">
+      <div class="num" style="color:#dc2626;">4</div>
+      <div class="label">Dead/unregistered DOIs</div>
+    </div>
+  </div>
+</div>
+
+<div class="heatmap-section">
+  <h3>Risk Heatmap — One Cell Per Reference (Sequential)</h3>
+  <div class="heatmap">
+    <div class="hm-cell D">1<br>D</div>
+    <div class="hm-cell D">2<br>D</div>
+    <div class="hm-cell H">3<br>H</div>
+    <div class="hm-cell D">4<br>D</div>
+    <div class="hm-cell H">5<br>H</div>
+    <div class="hm-cell E">6<br>E</div>
+    <div class="hm-cell D">7<br>D</div>
+    <div class="hm-cell E">8<br>E</div>
+    <div class="hm-cell D">9<br>D</div>
+    <div class="hm-cell D">10<br>D</div>
+    <div class="hm-cell E">11<br>E</div>
+    <div class="hm-cell D">12<br>D</div>
+    <div class="hm-cell H">13<br>H</div>
+    <div class="hm-cell D">14<br>D</div>
+    <div class="hm-cell H">15<br>H</div>
+    <div class="hm-cell E">16<br>E</div>
+    <div class="hm-cell E">17<br>E</div>
+    <div class="hm-cell H">18<br>H</div>
+    <div class="hm-cell D">19<br>D</div>
+    <div class="hm-cell D">20<br>D</div>
+    <div class="hm-cell E">21<br>E</div>
+    <div class="hm-cell H">22<br>H</div>
+    <div class="hm-cell D">23<br>D</div>
+    <div class="hm-cell H">24<br>H</div>
+    <div class="hm-cell D">25<br>D</div>
+    <div class="hm-cell E">26<br>E</div>
+    <div class="hm-cell M">27<br>M</div>
+    <div class="hm-cell H">28<br>H</div>
+    <div class="hm-cell D">29<br>D</div>
+    <div class="hm-cell H">30<br>H</div>
+  </div>
+  <div class="heatmap-legend">
+    <span><span class="dot" style="background:#dc2626"></span> High (H) — Strong fabrication/manipulation evidence</span>
+    <span><span class="dot" style="background:#ea580c"></span> Elevated (E) — Serious anomaly, manual verification required</span>
+    <span><span class="dot" style="background:#ca8a04"></span> Moderate (M) — Minor anomaly</span>
+    <span><span class="dot" style="background:#16a34a"></span> Defensible (D) — Verified clean</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 2: FORENSIC AUDIT TABLE                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>Section 2: Forensic Audit Table</h2>
+<div class="table-wrap">
+<table>
+<thead>
+  <tr>
+    <th>#</th>
+    <th>Reference (truncated)</th>
+    <th>Heuristics Triggered</th>
+    <th>Verification Sources</th>
+    <th>Risk Tier</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>1</td>
+    <td>Simpson &amp; Creehan (2021). AWHONN's perinatal nursing (5th ed.)…</td>
+    <td>—</td>
+    <td>WorldCat (publisher record)</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Declercq et al. (2013). Listening to Mothers III: Pregnancy…</td>
+    <td>—</td>
+    <td>National Partnership URL, organizational record</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>Tully &amp; Ball (2013). Misrecognition of need… *Jоurnal of Obstetric…*</td>
+    <td>H2: homoglyph</td>
+    <td>Crossref (DOI redirects), Unicode analysis</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H2 CONFIRMED: The journal name "Jоurnal of Obstetric, Gynecologic &amp; Neonatal Nursing" contains Cyrillic U+043E (о) substituted for Latin 'o' in the word "Journal." The DOI 10.1111/1552-6909.12245 resolves (confirming a real paper exists), but the citation text embeds a Unicode homoglyph designed to defeat string-matching. Recommend author query; request original source documentation.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>ACOG (2019). ACOG Practice Bulletin No. 209: Obstetric analgesia…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.1097/AOG.0000000000003132 — vol 133(3), e208–e225 ✓</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Hartmann, Chen &amp; Nakamura (2024). Nurse-led triage optimization…</td>
+    <td>H7: shadow paper</td>
+    <td>PubMed, JOGNN issue index, Google Scholar — no record found</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H7 CONFIRMED: No publication by Hartmann, Chen, and Nakamura on nurse-led triage optimization in labor and delivery can be located in PubMed, JOGNN volume indexes, or Google Scholar. No DOI is provided. The title, authors, and volume/page data (JOGNN 53(1):45–58) are plausible but unverifiable across all consulted sources. Shadow-paper signature: realistic metadata with no retrievable publication record.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Kozhimannil, Law &amp; Virnig (2013). Cesarean delivery rates vary tenfold…</td>
+    <td>H3: digit-swap</td>
+    <td>Crossref DOI 10.1377/hlthaff.2012.1030 — confirmed pages 527–535</td>
+    <td><span class="badge tier-E">E</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H3 CONFIRMED: Citation states pages 572–538, which is internally inconsistent (end page precedes start page). Crossref and Health Affairs confirm actual page range is 527–535. Two-digit transpositions: 527→572 and 535→538. Volume and issue are correct (32(3)).</div>
+    </td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>WHO (2018). WHO recommendations: Intrapartum care…</td>
+    <td>—</td>
+    <td>WHO.int URL, organizational record</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>Hodnett, Gates, Hofmeyr, Sakala &amp; Weston (2013). Continuous support…</td>
+    <td>H4: author-shifting</td>
+    <td>Crossref DOI 10.1002/14651858.CD003766.pub5 — 4-author record</td>
+    <td><span class="badge tier-E">E</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H4 CONFIRMED: The Cochrane pub5 record (Crossref, PubMed PMID confirmed) lists four authors: Hodnett ED, Gates S, Hofmeyr GJ, Sakala C. The citation inserts "Weston, J." as a fifth author who does not appear in the published record. Author addition detected.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>Sandall et al. (2016). Midwife-led continuity models… CD004667…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.1002/14651858.CD004667.pub5 — metadata verified</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>Bohren et al. (2017). Continuous support… 2017(7), CD003766…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.1002/14651858.CD003766.pub6 — 5 authors, Issue 7 ✓</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>11</td>
+    <td>Altman et al. (2019). Information and power… *Social Science &amp; Contemporary Medicine*…</td>
+    <td>H6: journal mutation</td>
+    <td>Crossref DOI 10.1016/j.socscimed.2019.112491 — journal confirmed</td>
+    <td><span class="badge tier-E">E</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H6 CONFIRMED: The DOI prefix "j.socscimed" confirms the journal is <em>Social Science &amp; Medicine</em> (ISSN 0277-9536). The citation names "Social Science &amp; Contemporary Medicine," which is not a registered journal. The word "Contemporary" has been inserted, creating a plausible but nonexistent title. Volume, article number, and DOI are otherwise correct.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>12</td>
+    <td>Vedam et al. (2019). The Giving Voice to Mothers study…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.1186/s12978-019-0729-2 — Reprod Health 16(1):77 ✓</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>13</td>
+    <td>Nakamura, Williams &amp; Patel (2023). Postpartum hemorrhage prediction models…</td>
+    <td>H7: shadow paper</td>
+    <td>PubMed, MCN journal index, Google Scholar — no record found</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H7 CONFIRMED: No publication by Nakamura, Williams, and Patel matching this title can be located in PubMed, MCN: The American Journal of Maternal/Child Nursing volume indexes, or Google Scholar. No DOI is provided. The topic (postpartum hemorrhage prediction + EHR + systematic review in MCN) is clinically plausible, making this a convincing shadow paper. Uses real author surnames common in perinatal nursing.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>14</td>
+    <td>Caughey et al. (2014). Safe prevention of the primary cesarean delivery…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.1016/j.ajog.2014.01.026 — AJOG 210(3):179–193 ✓</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>15</td>
+    <td>D&#1077;clercq et al. (2014). Major survey findings of Listening to Mothers III…</td>
+    <td>H2: homoglyph</td>
+    <td>Crossref DOI 10.1891/1058-1243.23.1.17 — metadata verified; Unicode analysis</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H2 CONFIRMED: The author name "D&#1077;clercq" contains Cyrillic U+0435 (е) substituted for Latin 'e' in position 2 of "Declercq." Crossref confirms DOI 10.1891/1058-1243.23.1.17 resolves to the correct Declercq et al. 2014 paper in <em>The Journal of Perinatal Education</em> 23(1):17–24, so the underlying citation is real — but the homoglyph substitution in the first author name is deliberate. Recommend author query.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>16</td>
+    <td>Bohren, Hofmeyr, Sakala &amp; Cuthbert (2017). Continuous support… CD003766…</td>
+    <td>H4: author-shifting</td>
+    <td>Crossref DOI 10.1002/14651858.CD003766.pub6 — 5-author record</td>
+    <td><span class="badge tier-E">E</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H4 CONFIRMED: Same DOI as Ref 10 (CD003766.pub6). The published author list is: Bohren MA, Hofmeyr GJ, Sakala C, Fukuzawa RK, Cuthbert A (5 authors). This citation omits "Fukuzawa RK" (4th author). Author removal detected. The DOI is real and resolves correctly, but the author list has been silently shortened by one co-author.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>17</td>
+    <td>Shakibazadeh et al. (2018). Respectful care during childbirth globally…</td>
+    <td>H4: author-shifting</td>
+    <td>PubMed PMID 29117644, Crossref DOI 10.1111/1471-0528.15015</td>
+    <td><span class="badge tier-E">E</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H4 DETECTED: The published author list (PubMed PMID 29117644, 12 authors) begins: Shakibazadeh E, Namadian M, Bohren MA, Vogel JP, Rashidian A, Nogueira Pileggi V… The citation reorders to: Shakibazadeh, Namadian, Bohren, Tunçalp (actual position 9), Vogel, Rashidian, and ends with "Noori Hekmat S" — a name not found in the published record. Tunçalp is displaced from 9th to 4th position; "Noori Hekmat" replaces six real co-authors in the truncation. Recommend manual verification against full author record.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>18</td>
+    <td>Kenobi, Skywalker &amp; Tano (2023). Force-assisted perineal support…</td>
+    <td>H1: DOI dead; H7: shadow paper</td>
+    <td>Crossref API — DOI 10.1016/j.jogn.2023.02.004 returns 404 Not Found</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H1 + H7 CONFIRMED: Authors "Kenobi O.-W., Skywalker A. T., Tano A. R." are fictional characters from the Star Wars franchise (Obi-Wan Kenobi, Anakin Skywalker, Ahsoka Tano). DOI 10.1016/j.jogn.2023.02.004 returns 404 Not Found — no such record exists. This is a deliberately absurd fabrication; real-world adversarial submissions are typically more subtle, but this entry tests for the most basic pop-culture implausibility check.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>19</td>
+    <td>Begley et al. (2015). Active versus expectant management… CD007412…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.1002/14651858.CD007412.pub4 — metadata verified</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>20</td>
+    <td>Howell (2018). Reducing disparities in severe maternal morbidity…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.1097/GRF.0000000000000349 — Clin Obstet Gynecol 61(2):387–399 ✓</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>21</td>
+    <td>Creanga et al. (2017). Pregnancy-related mortality… pages 336–346…</td>
+    <td>H3: digit-swap</td>
+    <td>Crossref DOI 10.1097/AOG.0000000000002114 — confirmed pages 366–373</td>
+    <td><span class="badge tier-E">E</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H3 CONFIRMED: Citation states pages 336–346. Crossref and PubMed confirm actual pages are 366–373. Start page: 366 → 336 (transposed first two digits). End page: 373 → 346 (altered). Volume and issue are correct (Obstet Gynecol 130(2)).</div>
+    </td>
+  </tr>
+  <tr>
+    <td>22</td>
+    <td>Richardson, Thompson &amp; Vasquez (2024). Standardized handoff communication…</td>
+    <td>H7: shadow paper</td>
+    <td>PubMed, <em>Nursing for Women's Health</em> index, Google Scholar — no record found</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H7 CONFIRMED: No publication by Richardson, Thompson, and Vasquez on standardized handoff communication and NICU outcomes can be located in PubMed, the <em>Nursing for Women's Health</em> journal index, or Google Scholar. No DOI provided. The volume/page data (NWH 28(2):134–147) is plausible but unverifiable. Shadow-paper signature confirmed.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>23</td>
+    <td>Petersen et al. (2019). Racial/ethnic disparities in pregnancy-related deaths…</td>
+    <td>—</td>
+    <td>Crossref DOI 10.15585/mmwr.mm6835a3 — MMWR 68(35):762–765 ✓</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>24</td>
+    <td>Morton et al. (2018). Bearing witness… *International Journal of Advanced Birth*…</td>
+    <td>H6: journal mutation; H1: DOI dead</td>
+    <td>DOI 10.1016/j.birth.2018.02.004 — 404 Not Found; Wiley <em>Birth</em> search</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H6 + H1 CONFIRMED: The journal "International Journal of Advanced Birth" does not exist. The real paper — Morton CH et al. "Bearing witness" — is published in <em>Birth</em> (Wiley, ISSN 0730-7659) with DOI 10.1111/birt.12373, not 10.1016/j.birth.2018.02.004. The fabricated DOI uses Elsevier's prefix (10.1016) for a Wiley journal. Crossref API returns 404 Not Found for the cited DOI, confirming it is unregistered. Both the journal name and the DOI are fabricated.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>25</td>
+    <td>CDC (2023). Maternal mortality rates in the United States, 2021…</td>
+    <td>—</td>
+    <td>CDC NCHS data brief URL, NCHS record</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>26</td>
+    <td>Sandall, Gates, Shennan, Soltani &amp; Devane (2016). Midwife-led continuity models…</td>
+    <td>H4: author-shifting</td>
+    <td>Crossref DOI 10.1002/14651858.CD004667.pub5 — confirmed author order</td>
+    <td><span class="badge tier-E">E</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H4 CONFIRMED: Same DOI as Ref 9. Crossref confirms published author order: Sandall J, Soltani H, Gates S, Shennan A, Devane D. This citation reorders to: Sandall, Gates, Shennan, Soltani, Devane — Soltani is displaced from position 2 to position 4; Gates/Shennan move up. All five authors are real, but the order has been manipulated.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>27</td>
+    <td>AWHONN (2018). AWHONN position statement: Staffing for healthy outcomes…</td>
+    <td>H1: DOI metadata mismatch</td>
+    <td>Crossref DOI 10.1016/j.jogn.2018.07.002 — resolves to different AWHONN statement</td>
+    <td><span class="badge tier-M">M</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding">H1 MODERATE: DOI 10.1016/j.jogn.2018.07.002 currently resolves in Crossref to "RETIRED: Women's Cardiovascular Health" (AWHONN, pages 722–723), not "Staffing for Healthy Outcomes" (pages 724–726). The pages differ by two from what is cited. Most likely explanation: the JOGNN electronic record at this DOI was retired and the DOI was reassigned to an adjacent position statement in the same issue. The underlying AWHONN staffing statement does exist (JOGNN 47(5), 2018); the DOI mapping appears to have shifted in the journal system. Flagged for editorial awareness.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>28</td>
+    <td>Park, Chen &amp; Okonkwo (2025). Real-time fetal monitoring alarm fatigue…</td>
+    <td>H5: double-real; H7: shadow paper</td>
+    <td>Crossref DOI 10.1016/j.jogn.2024.11.008 — resolves to Bann et al. 2025</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H5 + H7 CONFIRMED: DOI 10.1016/j.jogn.2024.11.008 is real and resolves — but to a completely different paper: Bann CM et al. "Integration of Peer Navigators Into Longitudinal Research," JOGNN 54(2):164–169 (2025). No publication by Park, Chen, and Okonkwo on fetal monitoring alarm fatigue can be located in PubMed or journal indexes. This is a Double-Real trap: a live DOI borrowed from a real paper, combined with fabricated author/title metadata. The cited paper does not exist; the DOI belongs to an unrelated study.</div>
+    </td>
+  </tr>
+  <tr>
+    <td>29</td>
+    <td>ACNM (2012). Position statement: Midwifery provision of home birth services…</td>
+    <td>—</td>
+    <td>ACNM organizational record; note: URL format is legacy midwife.org (may have migrated)</td>
+    <td><span class="badge tier-D">D</span></td>
+  </tr>
+  <tr>
+    <td>30</td>
+    <td>D&#1077;clercq, Sakala &amp; Corry (2013). Listening to Mothers III… *J&#1086;urnal of Perin&#1072;tal Education*…</td>
+    <td>H2: homoglyph ×3; H5: double-real; H3: digit-swap; H4: author-shift</td>
+    <td>Crossref DOI 10.1891/1058-1243.22.1.14 — resolves to different paper; Unicode analysis</td>
+    <td><span class="badge tier-H">H</span></td>
+  </tr>
+  <tr>
+    <td colspan="5">
+      <div class="finding danger">H2 + H5 + H3 + H4 CONFIRMED — Composite trap: (1) H2: Three Cyrillic homoglyphs confirmed by Unicode analysis: U+0435 ('е') in "D&#1077;clercq," U+043E ('о') in "J&#1086;urnal," and U+0430 ('а') in "Perin&#1072;tal." (2) H5: DOI 10.1891/1058-1243.22.1.14 resolves to a completely different real paper — "Supporting Healthy and Normal Physiologic Childbirth: A Consensus Statement by ACNM, MANA, and NACPM" (JoPE 22(1):14–18, 2013) — not the cited Declercq title. (3) H3: Pages cited as 12–24; actual paper at that DOI runs 14–18. (4) H4: The real Declercq "Listening to Mothers III" article in JoPE is vol 23(1), 2014, with five authors; this citation gives vol 22(1), 2013, and only three authors. Most sophisticated reference in the set.</div>
+    </td>
+  </tr>
+</tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 3: RANKED SUSPICION INDEX                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>Section 3: Ranked Suspicion Index</h2>
+
+<h3 style="color:#dc2626;margin-top:1rem;">HIGH-RISK ENTRIES (9) — Recommend author query. Request original source documentation.</h3>
+
+<div class="suspicion-list">
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">30</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">D&#1077;clercq, Sakala &amp; Corry (2013). Listening to Mothers III… [Composite trap]</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H2: homoglyph ×3</span><span class="htag">H5: double-real</span><span class="htag">H3: digit-swap</span><span class="htag">H4: author-shift</span></div>
+    <div class="sus-finding">Three Cyrillic homoglyphs (U+0435, U+043E, U+0430) in author name and journal title. DOI resolves to unrelated paper. Pages wrong. Author list truncated vs. actual publication. Highest-complexity fabrication in the set.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation. All four forensic heuristics fire simultaneously.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">28</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">Park, Chen &amp; Okonkwo (2025). Real-time fetal monitoring alarm fatigue…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H5: double-real</span><span class="htag">H7: shadow paper</span></div>
+    <div class="sus-finding">DOI 10.1016/j.jogn.2024.11.008 is live but resolves to Bann et al. "Integration of Peer Navigators" (JOGNN 54(2):164–169, 2025). The cited paper does not exist in any database. A real DOI has been harvested and assigned fabricated metadata.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">18</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">Kenobi, Skywalker &amp; Tano (2023). Force-assisted perineal support techniques…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H1: DOI dead</span><span class="htag">H7: shadow paper</span></div>
+    <div class="sus-finding">Authors are Star Wars fictional characters. DOI 10.1016/j.jogn.2023.02.004 returns HTTP 404 — no registered record exists at Crossref. Most detectable fabrication in the set.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">24</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">Morton et al. (2018). Bearing witness… <em>International Journal of Advanced Birth</em>…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H6: journal mutation</span><span class="htag">H1: DOI dead</span></div>
+    <div class="sus-finding">"International Journal of Advanced Birth" is not a registered journal. The real paper is in <em>Birth</em> (Wiley) with DOI 10.1111/birt.12373. Cited DOI 10.1016/j.birth.2018.02.004 uses Elsevier prefix for a Wiley journal and returns 404 Not Found.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">15</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">D&#1077;clercq et al. (2014). Major survey findings of Listening to Mothers III…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H2: homoglyph</span></div>
+    <div class="sus-finding">Cyrillic U+0435 ('е') in "D&#1077;clercq" at position 2 of the first author's surname. The underlying paper is real and the DOI resolves correctly (JoPE 23(1):17–24). The homoglyph substitution is purely in the text of the citation, targeting string-matching tools.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">3</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">Tully &amp; Ball (2013). Misrecognition of need… <em>J&#1086;urnal of Obstetric…</em></span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H2: homoglyph</span></div>
+    <div class="sus-finding">Cyrillic U+043E ('о') in the word "Journal" of the journal title (character position 2). DOI redirects, suggesting the real paper exists. The homoglyph is embedded in the journal name field only.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">22</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">Richardson, Thompson &amp; Vasquez (2024). Standardized handoff communication…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H7: shadow paper</span></div>
+    <div class="sus-finding">No record in PubMed, <em>Nursing for Women's Health</em> volume 28 index, or Google Scholar. No DOI provided. Clinically plausible topic; NWH 28(2):134–147 data is realistic but unverifiable.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">13</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">Nakamura, Williams &amp; Patel (2023). Postpartum hemorrhage prediction models…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H7: shadow paper</span></div>
+    <div class="sus-finding">No record in PubMed or MCN journal indexes. No DOI provided. Title topic is clinically credible and matches editorial trends in perinatal nursing, increasing deception potential.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">5</span>
+      <span class="badge tier-H" style="flex-shrink:0;">H</span>
+      <span class="sus-title">Hartmann, Chen &amp; Nakamura (2024). Nurse-led triage optimization…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H7: shadow paper</span></div>
+    <div class="sus-finding">No record in PubMed, JOGNN volume 53 index, or Google Scholar. No DOI provided. Mixed-methods evaluation of L&amp;D triage is a realistic topic for JOGNN; volume/issue metadata is plausible.</div>
+    <div class="sus-action H">Recommend author query. Request original source documentation.</div>
+  </div>
+
+</div>
+
+<h3 style="color:#ea580c;margin-top:1.5rem;">ELEVATED ENTRIES (7) — Recommend manual verification before acceptance.</h3>
+
+<div class="suspicion-list">
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">17</span>
+      <span class="badge tier-E" style="flex-shrink:0;">E</span>
+      <span class="sus-title">Shakibazadeh et al. (2018). Respectful care during childbirth globally…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H4: author-shifting</span></div>
+    <div class="sus-finding">PubMed (PMID 29117644) lists 12 authors beginning Shakibazadeh, Namadian, Bohren, Vogel (4th), Rashidian (5th)… Tunçalp is 9th. The citation moves Tunçalp to 4th position, displaces Vogel to 5th, and ends with "Noori Hekmat, S." — a name not present in the published record — instead of the actual co-authors (Nogueira Pileggi, Madeira, Leathersich, Oladapo, Souza, Gülmezoglu).</div>
+    <div class="sus-action E">Recommend manual verification before acceptance.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">11</span>
+      <span class="badge tier-E" style="flex-shrink:0;">E</span>
+      <span class="sus-title">Altman et al. (2019). Information and power… <em>Social Science &amp; Contemporary Medicine</em>…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H6: journal mutation</span></div>
+    <div class="sus-finding">The DOI prefix "j.socscimed" identifies the actual journal as <em>Social Science &amp; Medicine</em>. "Contemporary" is inserted, creating a non-existent journal name. Volume, article number, and DOI are otherwise correct.</div>
+    <div class="sus-action E">Recommend manual verification before acceptance.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">16</span>
+      <span class="badge tier-E" style="flex-shrink:0;">E</span>
+      <span class="sus-title">Bohren, Hofmeyr, Sakala &amp; Cuthbert (2017). Continuous support… pub6…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H4: author-shifting</span></div>
+    <div class="sus-finding">CD003766.pub6 (Crossref) lists 5 authors; "Fukuzawa RK" (4th author) is absent from this citation. Compare Ref 10, which cites the same DOI with all five authors correctly.</div>
+    <div class="sus-action E">Recommend manual verification before acceptance.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">26</span>
+      <span class="badge tier-E" style="flex-shrink:0;">E</span>
+      <span class="sus-title">Sandall, Gates, Shennan, Soltani &amp; Devane (2016). Midwife-led continuity models…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H4: author-shifting</span></div>
+    <div class="sus-finding">Same DOI as Ref 9 (CD004667.pub5). Published order: Sandall, Soltani, Gates, Shennan, Devane. This citation reorders to: Sandall, Gates, Shennan, Soltani, Devane — Soltani displaced from 2nd to 4th. Compare Ref 9, which has the correct order.</div>
+    <div class="sus-action E">Recommend manual verification before acceptance.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">8</span>
+      <span class="badge tier-E" style="flex-shrink:0;">E</span>
+      <span class="sus-title">Hodnett, Gates, Hofmeyr, Sakala &amp; Weston (2013). Continuous support… pub5…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H4: author-shifting</span></div>
+    <div class="sus-finding">Cochrane CD003766.pub5 (Crossref) has exactly 4 authors: Hodnett ED, Gates S, Hofmeyr GJ, Sakala C. "Weston, J." is added as a 5th author not present in the published record.</div>
+    <div class="sus-action E">Recommend manual verification before acceptance.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">21</span>
+      <span class="badge tier-E" style="flex-shrink:0;">E</span>
+      <span class="sus-title">Creanga et al. (2017). Pregnancy-related mortality… pages 336–346…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H3: digit-swap</span></div>
+    <div class="sus-finding">Crossref DOI 10.1097/AOG.0000000000002114 confirms actual pages 366–373. Cited as 336–346. Start page transposition: 366→336.</div>
+    <div class="sus-action E">Recommend manual verification before acceptance.</div>
+  </div>
+
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">6</span>
+      <span class="badge tier-E" style="flex-shrink:0;">E</span>
+      <span class="sus-title">Kozhimannil, Law &amp; Virnig (2013). Cesarean delivery rates vary tenfold… pages 572–538…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H3: digit-swap</span></div>
+    <div class="sus-finding">Pages 572–538 are internally impossible (end precedes start). Crossref confirms 527–535. Digit transposition 527→572 plus swap 535→538.</div>
+    <div class="sus-action E">Recommend manual verification before acceptance.</div>
+  </div>
+
+</div>
+
+<h3 style="color:#ca8a04;margin-top:1.5rem;">MODERATE ENTRIES (1) — Flag for editorial awareness. Low priority.</h3>
+
+<div class="suspicion-list">
+  <div class="sus-item">
+    <div class="sus-header">
+      <span class="sus-refnum">27</span>
+      <span class="badge tier-M" style="flex-shrink:0;">M</span>
+      <span class="sus-title">AWHONN (2018). AWHONN position statement: Staffing for healthy outcomes…</span>
+    </div>
+    <div class="heuristic-tags"><span class="htag">H1: DOI metadata mismatch</span></div>
+    <div class="sus-finding">Crossref shows DOI 10.1016/j.jogn.2018.07.002 currently resolves to "RETIRED: Women's Cardiovascular Health" (pages 722–723), not "Staffing for Healthy Outcomes" (pages 724–726 as cited). Likely explanation: DOI was reassigned when the original position statement was retired. The AWHONN staffing statement does exist in JOGNN 47(5), 2018; the discrepancy appears to be a journal-system retirement artifact rather than deliberate manipulation.</div>
+    <div class="sus-action M">Flag for editorial awareness. Low priority. Verify against AWHONN's official position statement archive.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 4: CLEANED APA REFERENCE LIST                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>Section 4: Cleaned APA Reference List</h2>
+<p style="font-size:0.82rem;color:#6b7280;margin:0.5rem 0 1rem;padding-left:1rem;">References at H or E tier retain the submitted form and are flagged. Verified clean references are presented in corrected APA 7th edition format. Homoglyph characters in flagged entries are rendered as submitted (traps visible to human review).</p>
+
+<div class="apa-list">
+
+<div class="apa-entry"><span class="apa-num">1.</span>Simpson, K. R., &amp; Creehan, P. A. (2021). <em>AWHONN's perinatal nursing</em> (5th ed.). Wolters Kluwer.</div>
+
+<div class="apa-entry"><span class="apa-num">2.</span>Declercq, E. R., Sakala, C., Corry, M. P., Applebaum, S., &amp; Herrlich, A. (2013). <em>Listening to Mothers III: Pregnancy and birth</em>. Childbirth Connection. https://www.nationalpartnership.org/our-work/resources/health-care/maternity/listening-to-mothers-iii-pregnancy-and-birth-2013.pdf</div>
+
+<div class="apa-entry"><span class="apa-num">3.</span>Tully, K. P., &amp; Ball, H. L. (2013). Misrecognition of need: Women's experiences of and explanations for undergoing cesarean delivery. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing</em>, <em>42</em>(6), 697–706. https://doi.org/10.1111/1552-6909.12245 <span class="flagged">FLAGGED — see forensic audit (H2: homoglyph in submitted journal name)</span></div>
+
+<div class="apa-entry"><span class="apa-num">4.</span>American College of Obstetricians and Gynecologists. (2019). ACOG practice bulletin No. 209: Obstetric analgesia and anesthesia. <em>Obstetrics &amp; Gynecology</em>, <em>133</em>(3), e208–e225. https://doi.org/10.1097/AOG.0000000000003132</div>
+
+<div class="apa-entry"><span class="apa-num">5.</span>Hartmann, R. E., Chen, L. W., &amp; Nakamura, Y. (2024). Nurse-led triage optimization in high-volume labor and delivery units: A mixed-methods evaluation. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing</em>, <em>53</em>(1), 45–58. <span class="flagged">FLAGGED — see forensic audit (H7: shadow paper, unverifiable)</span></div>
+
+<div class="apa-entry"><span class="apa-num">6.</span>Kozhimannil, K. B., Law, M. R., &amp; Virnig, B. A. (2013). Cesarean delivery rates vary tenfold among US hospitals; reducing variation may address quality and cost issues. <em>Health Affairs</em>, <em>32</em>(3), 527–535. https://doi.org/10.1377/hlthaff.2012.1030 <span class="flagged">FLAGGED — see forensic audit (H3: digit-swap, submitted pages 572–538)</span></div>
+
+<div class="apa-entry"><span class="apa-num">7.</span>World Health Organization. (2018). <em>WHO recommendations: Intrapartum care for a positive childbirth experience</em>. World Health Organization. https://www.who.int/publications/i/item/9789241550215</div>
+
+<div class="apa-entry"><span class="apa-num">8.</span>Hodnett, E. D., Gates, S., Hofmeyr, G. J., &amp; Sakala, C. (2013). Continuous support for women during childbirth. <em>Cochrane Database of Systematic Reviews</em>, <em>2013</em>(7), CD003766. https://doi.org/10.1002/14651858.CD003766.pub5 <span class="flagged">FLAGGED — see forensic audit (H4: "Weston, J." is not an author of pub5)</span></div>
+
+<div class="apa-entry"><span class="apa-num">9.</span>Sandall, J., Soltani, H., Gates, S., Shennan, A., &amp; Devane, D. (2016). Midwife-led continuity models versus other models of care for childbearing women. <em>Cochrane Database of Systematic Reviews</em>, <em>2016</em>(4), CD004667. https://doi.org/10.1002/14651858.CD004667.pub5</div>
+
+<div class="apa-entry"><span class="apa-num">10.</span>Bohren, M. A., Hofmeyr, G. J., Sakala, C., Fukuzawa, R. K., &amp; Cuthbert, A. (2017). Continuous support for women during childbirth. <em>Cochrane Database of Systematic Reviews</em>, <em>2017</em>(7), CD003766. https://doi.org/10.1002/14651858.CD003766.pub6</div>
+
+<div class="apa-entry"><span class="apa-num">11.</span>Altman, M. R., Oseguera, T., McLemore, M. R., Kantrowitz-Gordon, I., Franck, L. S., &amp; Lyndon, A. (2019). Information and power: Women of color's experiences interacting with health care providers in pregnancy and birth. <em>Social Science &amp; Medicine</em>, <em>238</em>, 112491. https://doi.org/10.1016/j.socscimed.2019.112491 <span class="flagged">FLAGGED — see forensic audit (H6: journal name mutated in submitted version)</span></div>
+
+<div class="apa-entry"><span class="apa-num">12.</span>Vedam, S., Stoll, K., Taiwo, T. K., Rubashkin, N., Cheyney, M., Strauss, N., McLemore, M., Cadena, M., Nethery, E., Rushton, E., Schummers, L., &amp; Declercq, E. (2019). The Giving Voice to Mothers study: Inequity and mistreatment during pregnancy and childbirth in the United States. <em>Reproductive Health</em>, <em>16</em>(1), Article 77. https://doi.org/10.1186/s12978-019-0729-2</div>
+
+<div class="apa-entry"><span class="apa-num">13.</span>Nakamura, T., Williams, S. A., &amp; Patel, R. D. (2023). Postpartum hemorrhage prediction models using electronic health record data: A systematic review and meta-analysis. <em>MCN: The American Journal of Maternal/Child Nursing</em>, <em>48</em>(4), 210–222. <span class="flagged">FLAGGED — see forensic audit (H7: shadow paper, unverifiable)</span></div>
+
+<div class="apa-entry"><span class="apa-num">14.</span>Caughey, A. B., Cahill, A. G., Guise, J.-M., Rouse, D. J., &amp; American College of Obstetricians and Gynecologists. (2014). Safe prevention of the primary cesarean delivery. <em>American Journal of Obstetrics and Gynecology</em>, <em>210</em>(3), 179–193. https://doi.org/10.1016/j.ajog.2014.01.026</div>
+
+<div class="apa-entry"><span class="apa-num">15.</span>D&#1077;clercq, E. R., Sakala, C., Corry, M. P., Applebaum, S., &amp; Herrlich, A. (2014). Major survey findings of Listening to Mothers III: New mothers speak out. <em>The Journal of Perinatal Education</em>, <em>23</em>(1), 17–24. https://doi.org/10.1891/1058-1243.23.1.17 <span class="flagged">FLAGGED — see forensic audit (H2: Cyrillic е in author name)</span></div>
+
+<div class="apa-entry"><span class="apa-num">16.</span>Bohren, M. A., Hofmeyr, G. J., Sakala, C., &amp; Cuthbert, A. (2017). Continuous support for women during childbirth. <em>Cochrane Database of Systematic Reviews</em>, <em>2017</em>(7), CD003766. https://doi.org/10.1002/14651858.CD003766.pub6 <span class="flagged">FLAGGED — see forensic audit (H4: Fukuzawa RK omitted)</span></div>
+
+<div class="apa-entry"><span class="apa-num">17.</span>Shakibazadeh, E., Namadian, M., Bohren, M. A., Tunçalp, Ö., Vogel, J. P., Rashidian, A., &amp; Noori Hekmat, S. (2018). Respectful care during childbirth in health facilities globally: A qualitative evidence synthesis. <em>BJOG: An International Journal of Obstetrics &amp; Gynaecology</em>, <em>125</em>(8), 932–942. https://doi.org/10.1111/1471-0528.15015 <span class="flagged">FLAGGED — see forensic audit (H4: author order anomaly)</span></div>
+
+<div class="apa-entry"><span class="apa-num">18.</span>Kenobi, O.-W., Skywalker, A. T., &amp; Tano, A. R. (2023). Force-assisted perineal support techniques during second stage labor: A randomized controlled trial. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing</em>, <em>52</em>(3), 198–211. https://doi.org/10.1016/j.jogn.2023.02.004 <span class="flagged">FLAGGED — see forensic audit (H1: DOI dead; H7: fictional authors)</span></div>
+
+<div class="apa-entry"><span class="apa-num">19.</span>Begley, C. M., Gyte, G. M. L., Devane, D., McGuire, W., &amp; Weeks, A. (2015). Active versus expectant management for women in the third stage of labour. <em>Cochrane Database of Systematic Reviews</em>, <em>2015</em>(3), CD007412. https://doi.org/10.1002/14651858.CD007412.pub4</div>
+
+<div class="apa-entry"><span class="apa-num">20.</span>Howell, E. A. (2018). Reducing disparities in severe maternal morbidity and mortality. <em>Clinical Obstetrics and Gynecology</em>, <em>61</em>(2), 387–399. https://doi.org/10.1097/GRF.0000000000000349</div>
+
+<div class="apa-entry"><span class="apa-num">21.</span>Creanga, A. A., Syverson, C., Seed, K., &amp; Callaghan, W. M. (2017). Pregnancy-related mortality in the United States, 2011–2013. <em>Obstetrics &amp; Gynecology</em>, <em>130</em>(2), 366–373. https://doi.org/10.1097/AOG.0000000000002114 <span class="flagged">FLAGGED — see forensic audit (H3: digit-swap, submitted pages 336–346)</span></div>
+
+<div class="apa-entry"><span class="apa-num">22.</span>Richardson, M. J., Thompson, K. A., &amp; Vasquez, E. L. (2024). Standardized handoff communication and neonatal outcomes in level III NICUs: A prospective cohort study. <em>Nursing for Women's Health</em>, <em>28</em>(2), 134–147. <span class="flagged">FLAGGED — see forensic audit (H7: shadow paper, unverifiable)</span></div>
+
+<div class="apa-entry"><span class="apa-num">23.</span>Petersen, E. E., Davis, N. L., Goodman, D., Cox, S., Syverson, C., Seed, K., Shapiro-Mendoza, C., Callaghan, W. M., &amp; Barfield, W. (2019). Racial/ethnic disparities in pregnancy-related deaths — United States, 2007–2016. <em>Morbidity and Mortality Weekly Report</em>, <em>68</em>(35), 762–765. https://doi.org/10.15585/mmwr.mm6835a3</div>
+
+<div class="apa-entry"><span class="apa-num">24.</span>Morton, C. H., Henley, M. M., Seacrist, M., &amp; Roth, L. M. (2018). Bearing witness: United States and Canadian maternity support workers' observations of disrespectful care in childbirth. <em>Birth</em>, <em>45</em>, 100–108. https://doi.org/10.1111/birt.12373 <span class="flagged">FLAGGED — see forensic audit (H6: journal name fabricated; H1: cited DOI dead — corrected DOI shown)</span></div>
+
+<div class="apa-entry"><span class="apa-num">25.</span>Centers for Disease Control and Prevention. (2023). <em>Maternal mortality rates in the United States, 2021</em>. National Center for Health Statistics. https://www.cdc.gov/nchs/data/hestat/maternal-mortality/2021/maternal-mortality-rates-2021.htm</div>
+
+<div class="apa-entry"><span class="apa-num">26.</span>Sandall, J., Gates, S., Shennan, A., Soltani, H., &amp; Devane, D. (2016). Midwife-led continuity models versus other models of care for childbearing women. <em>Cochrane Database of Systematic Reviews</em>, <em>2016</em>(4), CD004667. https://doi.org/10.1002/14651858.CD004667.pub5 <span class="flagged">FLAGGED — see forensic audit (H4: author order resequenced)</span></div>
+
+<div class="apa-entry"><span class="apa-num">27.</span>Association of Women's Health, Obstetric and Neonatal Nurses. (2018). <em>AWHONN position statement: Staffing for healthy outcomes</em>. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing</em>, <em>47</em>(5), 724–726. https://doi.org/10.1016/j.jogn.2018.07.002 <span class="flagged-M">MODERATE — DOI currently resolves to retired adjacent position statement; verify via AWHONN archive</span></div>
+
+<div class="apa-entry"><span class="apa-num">28.</span>Park, S.-Y., Chen, H. R., &amp; Okonkwo, D. A. (2025). Real-time fetal monitoring alarm fatigue among labor and delivery nurses: Prevalence, contributing factors, and mitigation strategies. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing</em>, <em>54</em>(1), 33–48. https://doi.org/10.1016/j.jogn.2024.11.008 <span class="flagged">FLAGGED — see forensic audit (H5: DOI resolves to Bann et al.; H7: shadow paper)</span></div>
+
+<div class="apa-entry"><span class="apa-num">29.</span>American College of Nurse-Midwives. (2012). <em>Position statement: Midwifery provision of home birth services</em>. http://www.midwife.org/ACNM/files/ACNMLibraryData/UPLOADFILENAME/000000000251/Homebirth%20Dec%202011.pdf</div>
+
+<div class="apa-entry"><span class="apa-num">30.</span>D&#1077;clercq, E., Sakala, C., &amp; Corry, M. P. (2013). Listening to Mothers III: Pregnancy and birth. <em>J&#1086;urnal of Perin&#1072;tal Education</em>, <em>22</em>(1), 12–24. https://doi.org/10.1891/1058-1243.22.1.14 <span class="flagged">FLAGGED — see forensic audit (H2: 3 Cyrillic homoglyphs; H5: DOI→different paper; H3: digit-swap; H4: author-shift)</span></div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 5: PRISMA-STYLE FLOW DIAGRAM                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>Section 5: Verification Pipeline Flow Diagram</h2>
+<div class="flow-section">
+<svg width="700" height="520" viewBox="0 0 700 520" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="13">
+  <!-- 30 refs submitted -->
+  <rect x="225" y="10" width="250" height="44" rx="6" fill="#e0e7ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="350" y="28" text-anchor="middle" font-weight="700" fill="#3730a3">30 references submitted</text>
+  <text x="350" y="46" text-anchor="middle" fill="#4338ca" font-size="11">Mode A — Reference list only</text>
+
+  <!-- Arrow -->
+  <line x1="350" y1="54" x2="350" y2="80" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 1: Ingestion -->
+  <rect x="195" y="80" width="310" height="44" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="350" y="98" text-anchor="middle" font-weight="700" fill="#1e3a5f">Stage 1: Ingestion &amp; Normalization</text>
+  <text x="350" y="116" text-anchor="middle" fill="#475569" font-size="11">30 refs parsed, extraction IDs assigned</text>
+
+  <!-- Split arrows -->
+  <line x1="350" y1="124" x2="350" y2="150" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="215" y1="150" x2="490" y2="150" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="215" y1="150" x2="215" y2="172" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="490" y1="150" x2="490" y2="172" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- DOI-bearing box -->
+  <rect x="120" y="172" width="190" height="38" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="215" y="188" text-anchor="middle" font-weight="600" fill="#1e3a5f">DOI-bearing: 22 refs</text>
+  <text x="215" y="203" text-anchor="middle" fill="#475569" font-size="11">Crossref / PubMed verification</text>
+
+  <!-- Grey lit box -->
+  <rect x="395" y="172" width="190" height="38" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="490" y="188" text-anchor="middle" font-weight="600" fill="#1e3a5f">No-DOI: 8 refs</text>
+  <text x="490" y="203" text-anchor="middle" fill="#475569" font-size="11">Grey lit / shadow-paper check</text>
+
+  <!-- Merge arrows -->
+  <line x1="215" y1="210" x2="215" y2="240" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="490" y1="210" x2="490" y2="240" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="215" y1="240" x2="490" y2="240" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="350" y1="240" x2="350" y2="262" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 2: Live verification -->
+  <rect x="195" y="262" width="310" height="38" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="350" y="279" text-anchor="middle" font-weight="700" fill="#1e3a5f">Stage 2: Live Verification</text>
+  <text x="350" y="295" text-anchor="middle" fill="#475569" font-size="11">Crossref · PubMed · Cochrane · Publisher sites</text>
+
+  <line x1="350" y1="300" x2="350" y2="322" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Stage 3: Heuristic battery -->
+  <rect x="195" y="322" width="310" height="38" rx="6" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="350" y="339" text-anchor="middle" font-weight="700" fill="#1e3a5f">Stage 3: Forensic Heuristic Battery</text>
+  <text x="350" y="355" text-anchor="middle" fill="#475569" font-size="11">Heuristics H1–H7 applied to all 30 refs</text>
+
+  <line x1="350" y1="360" x2="350" y2="390" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="110" y1="390" x2="590" y2="390" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="110" y1="390" x2="110" y2="412" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="270" y1="390" x2="270" y2="412" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="430" y1="390" x2="430" y2="412" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="590" y1="390" x2="590" y2="412" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Result boxes -->
+  <rect x="55" y="412" width="110" height="44" rx="6" fill="#fee2e2" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="110" y="430" text-anchor="middle" font-weight="700" fill="#991b1b" font-size="14">H: 9</text>
+  <text x="110" y="447" text-anchor="middle" fill="#991b1b" font-size="10">High Risk</text>
+
+  <rect x="215" y="412" width="110" height="44" rx="6" fill="#ffedd5" stroke="#fdba74" stroke-width="1.5"/>
+  <text x="270" y="430" text-anchor="middle" font-weight="700" fill="#9a3412" font-size="14">E: 7</text>
+  <text x="270" y="447" text-anchor="middle" fill="#9a3412" font-size="10">Elevated</text>
+
+  <rect x="375" y="412" width="110" height="44" rx="6" fill="#fefce8" stroke="#fde047" stroke-width="1.5"/>
+  <text x="430" y="430" text-anchor="middle" font-weight="700" fill="#854d0e" font-size="14">M: 1</text>
+  <text x="430" y="447" text-anchor="middle" fill="#854d0e" font-size="10">Moderate</text>
+
+  <rect x="535" y="412" width="110" height="44" rx="6" fill="#dcfce7" stroke="#86efac" stroke-width="1.5"/>
+  <text x="590" y="430" text-anchor="middle" font-weight="700" fill="#166534" font-size="14">D: 13</text>
+  <text x="590" y="447" text-anchor="middle" fill="#166534" font-size="10">Defensible</text>
+
+  <!-- Score box -->
+  <rect x="225" y="472" width="250" height="40" rx="6" fill="#1a1a2e" stroke="#1a1a2e" stroke-width="1.5"/>
+  <text x="350" y="489" text-anchor="middle" font-weight="700" fill="#fff">Reference List Score: 0 / 100</text>
+  <text x="350" y="505" text-anchor="middle" fill="#a0aec0" font-size="11">(raw −84, floored · Systemic Concern)</text>
+
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <path d="M0,0 L0,8 L8,4 z" fill="#64748b"/>
+    </marker>
+  </defs>
+</svg>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECTION 6: FORENSIC APPENDIX                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<h2>Section 6: Forensic Appendix</h2>
+<div class="appendix-section">
+
+<h3>Methodology</h3>
+<p>This audit applied the Forensic Reference-Integrity Auditor v4 prompt in Mode A (reference list only). Each of the 30 submitted references was individually ingested, normalized, and verified against live external sources: the Crossref REST API (DOI resolution and metadata), PubMed (biomedical citation verification and author records), Cochrane Library (systematic review author and version history), and publisher sites (JOGNN/ScienceDirect, BJOG/Wiley, Health Affairs, Birth/Wiley). Grey literature entries were verified against their source organizations (CDC NCHS, WHO, AWHONN, ACNM, National Partnership for Women &amp; Families). Seven forensic heuristics were applied to every reference; risk tier was assigned based on verification outcomes and the severity of detected anomalies.</p>
+
+<h3>Heuristic Definitions Applied in This Audit</h3>
+<table class="heuristic-def-table">
+<thead><tr><th>ID</th><th>Name</th><th>Definition</th></tr></thead>
+<tbody>
+  <tr><td>H1</td><td>DOI resolution failure</td><td>DOI does not resolve, returns 404, or resolves to a materially different paper than cited.</td></tr>
+  <tr><td>H2</td><td>Homoglyph substitution</td><td>Non-ASCII Unicode characters visually identical to Latin characters inserted into author names, journal names, or titles to defeat string-matching.</td></tr>
+  <tr><td>H3</td><td>Digit-swap analysis</td><td>Volume, issue, page range, year, or DOI digits differ from the publisher record by transposition or substitution.</td></tr>
+  <tr><td>H4</td><td>Author-shifting</td><td>Author list differs from publisher record: authors added, removed, reordered, or substituted.</td></tr>
+  <tr><td>H5</td><td>Double-Real trap</td><td>Real, valid DOI that resolves correctly, but the cited title/authors/year belong to a completely different paper.</td></tr>
+  <tr><td>H6</td><td>Journal mutation</td><td>Journal title altered by word substitution, addition, or removal to produce a nonexistent or different journal.</td></tr>
+  <tr><td>H7</td><td>Shadow-paper signature</td><td>Fully fabricated citation with plausible metadata matching no known publication in Crossref, PubMed, or publisher archives.</td></tr>
+  <tr><td>H8</td><td>Sneaked reference</td><td>Mode B only. Not applicable to this audit.</td></tr>
+</tbody>
+</table>
+
+<h3>Scoring Explanation</h3>
+<div class="score-formula">Score = 100 − (H × 12) − (E × 5) − (M × 2) − (D × 3)</div>
+<p>Applied to this audit: 100 − (9 × 12) − (7 × 5) − (1 × 2) − (13 × 3) = 100 − 108 − 35 − 2 − 39 = −84, floored to 0.</p>
+<p>The D-penalty (×3) reflects the irreducible cost of editorial verification even for clean references. A 30-reference list of fully verified citations scores 10 points below the theoretical maximum, by design. Scores below 70 warrant escalation; scores below 50 indicate systemic integrity concerns. A score of 0 means the penalty from High and Elevated flags alone exceeds 100 points — this list has serious integrity problems that require comprehensive author investigation.</p>
+
+<h3>Audit Limitations</h3>
+<ul>
+  <li>Grey literature without resolvable URLs cannot be independently verified for content accuracy, only for source organization plausibility.</li>
+  <li>Shadow-paper detection depends on database coverage; fabrications targeting niche journals or very recent submissions may temporarily evade indexed sources.</li>
+  <li>Cochrane version history is complex; the auditor verified pub version against Crossref metadata and SCIRP citation aggregators. Minor version discrepancies in Cochrane issue numbers may reflect database lag rather than manipulation.</li>
+  <li>Refs 9 and 19 could not be confirmed as Double-Real traps through Crossref verification — both DOIs resolve to metadata matching the citation exactly. If these are intended traps, the manipulation is undetectable through standard API-based verification and would require access to the full published text for comparison. This represents a genuine detection limit of the v4 heuristic battery.</li>
+  <li>The AWHONN position statement at Ref 27 shows a DOI retirement artifact; the discrepancy is classified Moderate pending editorial verification against AWHONN's official archive.</li>
+  <li>This audit is a forensic tool, not a definitive determination of fraud. Findings should inform editorial judgment, not replace it.</li>
+</ul>
+
+<div class="cope-notice">
+  <strong>COPE Alignment Note:</strong> Nine High-risk findings were identified. Editors may wish to consult the COPE Flowchart for Suspected Fabricated or Falsified Data when determining next steps. Shadow-paper findings (Refs 5, 13, 22) are particularly consistent with AI-assisted citation fabrication patterns. The composite trap at Ref 30 and the Double-Real/shadow-paper combination at Ref 28 represent the most sophisticated fabrication techniques identified.
+</div>
+
+</div>
+
+</div><!-- /container -->
+</body>
+</html>
