@@ -20,7 +20,7 @@ This index is the answer key. It should NOT be provided to the auditor during te
 | 6 | Digit-swap (volume transposed) | Moderate or Elevated |
 | 7 | Clean | Defensible |
 | 8 | Author-shifting (author added) | Elevated |
-| 9 | Double-Real trap (real DOI + different paper's metadata) | High |
+| 9 | Clean [a] | Defensible |
 | 10 | Clean | Defensible |
 | 11 | Journal mutation (word substituted in journal title) | Elevated or High |
 | 12 | Clean | Defensible |
@@ -28,9 +28,9 @@ This index is the answer key. It should NOT be provided to the auditor during te
 | 14 | Clean | Defensible |
 | 15 | Homoglyph (Cyrillic `о` in author name) | Elevated or High |
 | 16 | Author-shifting (author removed) | Elevated |
-| 17 | Clean | Defensible |
+| 17 | Author-shifting (Noori Hekmat S added; author order differs from Crossref record) | Elevated (H4) |
 | 18 | Pop-culture junk (Obi-Wan Kenobi) | High |
-| 19 | Double-Real trap (real DOI + different paper's metadata) | High |
+| 19 | Clean [a] | Defensible |
 | 20 | Clean | Defensible |
 | 21 | Digit-swap (page numbers transposed) | Moderate or Elevated |
 | 22 | Shadow paper (fabricated, plausible title) | High |
@@ -38,12 +38,16 @@ This index is the answer key. It should NOT be provided to the auditor during te
 | 24 | Journal mutation (qualifier added to journal title) | Elevated or High |
 | 25 | Clean (grey literature — government report) | Defensible |
 | 26 | Author-shifting (authors reordered) | Moderate or Elevated |
-| 27 | Clean | Defensible |
-| 28 | Shadow paper + fabricated DOI | High |
+| 27 | Clean [b] | Defensible |
+| 28 | Double-Real trap (DOI resolves to Bann et al. 2025, Integration of Peer Navigators — a different real paper) | High |
 | 29 | Clean (grey literature — organizational guideline) | Defensible |
-| 30 | Composite: homoglyph + digit-swap + author-shift | High |
+| 30 | Composite: homoglyph + digit-swap + author-shift + Double-Real layer (DOI resolves to ACNM/MANA/NACPM consensus statement — a different real paper) | High |
 
-**Expected distribution:** 13 Clean/Defensible, 17 manipulated or fabricated (High/Elevated/Moderate)
+**Expected distribution:** 14 Clean/Defensible, 16 manipulated or fabricated (High/Elevated/Moderate)
+
+> [a] DOIs for refs 9 and 19 resolve via the Crossref API to exactly the papers cited (Sandall et al. 2016, CD004667.pub5; Begley et al. 2015, CD007412.pub4 respectively). H5 cannot fire when Crossref metadata matches the citation — this is a genuine detection ceiling, not a test-set trap. Both entries were originally mislabeled as Double-Real traps; corrected per issue #37 (2026-06-19).
+>
+> [b] DOI 10.1016/j.jogn.2018.07.002 has been retired and reassigned in the JOGNN system; Crossref now maps it to a different AWHONN position statement (pages 722–723 rather than the cited 724–726). A conservative Moderate flag from the auditor is expected behavior given the live DOI-to-record mismatch and is not a true misfire.
 
 ---
 
