@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forensic Audit — Temporal Impossibility (H9) — v5 — 2026-06-19</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.55; color: #1a1a2e; background: #f8f9fc; }
+  h1 { font-size: 1.5rem; font-weight: 700; color: #1a1a2e; }
+  h2 { font-size: 1.1rem; font-weight: 700; margin: 2rem 0 0.8rem; padding: 0.45rem 0.9rem; background: #1a1a2e; color: #fff; border-radius: 5px; }
+  h3 { font-size: 0.95rem; font-weight: 700; margin: 1.2rem 0 0.5rem; color: #1a1a2e; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+  .report-header { background: #1a1a2e; color: #fff; padding: 1.5rem 2rem; margin-bottom: 1.5rem; border-radius: 8px; }
+  .report-header h1 { color: #fff; }
+  .report-header p { color: #a0aec0; font-size: 0.85rem; margin-top: 0.35rem; }
+  .report-header .meta { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.8rem; font-size: 0.8rem; color: #a0aec0; }
+  .v5-badge { display: inline-block; background: #4f9cf9; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 0.5rem; vertical-align: middle; }
+  .h9-badge { display: inline-block; background: #7c3aed; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; letter-spacing: 0.06em; text-transform: uppercase; margin-left: 0.3rem; }
+  .notice { background: #fff8e7; border: 1px solid #f5d90a; border-radius: 6px; padding: 0.8rem 1rem; font-size: 0.85rem; color: #6b5900; margin: 1rem 0; }
+  .run-header { background: #f0f6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.9rem 1.2rem; margin: 1.2rem 0 0.8rem; }
+  .run-header h3 { margin: 0 0 0.3rem; color: #1e3a8a; font-size: 0.9rem; }
+  .run-header p { font-size: 0.82rem; color: #1e40af; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tier-H { background: #dc2626; color: #fff; }
+  .tier-E { background: #ea580c; color: #fff; }
+  .tier-M { background: #ca8a04; color: #fff; }
+  .tier-D { background: #16a34a; color: #fff; }
+
+  /* Summary table */
+  .summary-table-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 1.5rem; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 0.7rem 0.9rem; background: #f1f3f8; border-bottom: 2px solid #e2e8f0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #4a5568; font-weight: 700; }
+  td { text-align: left; padding: 0.65rem 0.9rem; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.num-col { font-size: 0.8rem; font-weight: 700; color: #6b7280; width: 28px; }
+
+  /* Ref cards */
+  .ref-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 1.1rem 1.3rem; margin-bottom: 1rem; border-left: 5px solid #e5e7eb; }
+  .ref-card.h-card { border-left-color: #dc2626; }
+  .ref-card.d-card { border-left-color: #16a34a; }
+  .ref-card .ref-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .ref-card .ref-cite { font-size: 0.8rem; color: #6b7280; font-style: italic; margin-bottom: 0.6rem; font-style: normal; background: #f8f9fc; padding: 0.4rem 0.7rem; border-radius: 5px; }
+  .ref-card .finding { font-size: 0.82rem; color: #374151; margin-bottom: 0.4rem; }
+  .ref-card .sub-check { background: #f3e8ff; border: 1px solid #d8b4fe; border-radius: 5px; padding: 0.4rem 0.7rem; font-size: 0.8rem; color: #5b21b6; margin: 0.3rem 0; }
+  .ref-card .sub-check.b { background: #fef3c7; border-color: #fcd34d; color: #78350f; }
+  .ref-card .sub-check.c { background: #fce7f3; border-color: #f9a8d4; color: #831843; }
+  .ref-card .other-heur { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 5px; padding: 0.4rem 0.7rem; font-size: 0.8rem; color: #9a3412; margin: 0.3rem 0; }
+  .ref-card .defensible-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 5px; padding: 0.5rem 0.75rem; font-size: 0.82rem; color: #14532d; }
+  .ref-card .na-box { background: #f8f9fc; border: 1px solid #e2e8f0; border-radius: 5px; padding: 0.4rem 0.7rem; font-size: 0.8rem; color: #9ca3af; margin: 0.3rem 0; }
+
+  /* Heatmap row */
+  .heatmap-row { display: flex; gap: 10px; margin: 0.5rem 0; }
+  .hm-cell { border-radius: 5px; padding: 8px 16px; text-align: center; font-size: 0.75rem; font-weight: 700; color: #fff; }
+  .hm-cell.d { background: #16a34a; }
+  .hm-cell.h { background: #dc2626; }
+
+  /* Verdict */
+  .verdict-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 1rem 1.3rem; margin: 1rem 0; }
+  .verdict-box.pass { border-color: #86efac; background: #f0fdf4; }
+  .verdict-box h3 { color: #14532d; margin: 0 0 0.5rem; }
+  .verdict-box p { font-size: 0.85rem; color: #166534; }
+  .verdict-row { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .verdict-chip { background: #dcfce7; border: 1px solid #86efac; border-radius: 5px; padding: 0.35rem 0.75rem; font-size: 0.78rem; font-weight: 700; color: #14532d; }
+
+  /* APA */
+  .apa-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 1.2rem 1.5rem; margin-bottom: 1.5rem; }
+  .apa-list { list-style: decimal; padding-left: 1.5rem; }
+  .apa-list li { margin-bottom: 0.8rem; font-size: 0.85rem; line-height: 1.55; }
+  .apa-flagged { color: #dc2626; font-weight: 700; font-size: 0.78rem; }
+
+  /* PRISMA */
+  .prisma-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 1.5rem; margin-bottom: 1.5rem; }
+  .run-prisma { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .pr-node { display: inline-block; background: #f1f3f8; border: 1px solid #d1d5db; border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.8rem; margin: 2px; text-align: center; width: 100%; }
+  .pr-arrow { color: #9ca3af; font-size: 1.1rem; text-align: center; display: block; margin: 4px 0; }
+  .pr-tiers { display: flex; justify-content: center; gap: 0.5rem; margin-top: 4px; }
+  .pr-tier { display: inline-block; border-radius: 6px; padding: 0.4rem 0.9rem; font-size: 0.8rem; font-weight: 700; }
+  .pr-tier.h { background: #dc2626; color: #fff; }
+  .pr-tier.d { background: #16a34a; color: #fff; }
+  .pr-run-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #4a5568; margin-bottom: 0.5rem; }
+
+  /* Appendix */
+  .appendix-wrap { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 1.5rem; margin-bottom: 1.5rem; }
+  .appendix-wrap h3 { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3rem; margin-top: 1.5rem; }
+  .appendix-wrap h3:first-child { margin-top: 0; }
+  .appendix-wrap p, .appendix-wrap li { font-size: 0.85rem; color: #374151; margin-bottom: 0.4rem; }
+  .appendix-wrap ul, .appendix-wrap ol { padding-left: 1.3rem; }
+  .appendix-wrap table { font-size: 0.82rem; }
+  .appendix-wrap th { font-size: 0.75rem; }
+  code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1px 5px; font-size: 0.82rem; font-family: monospace; }
+  footer { text-align: center; color: #9ca3af; font-size: 0.75rem; padding: 1.5rem 0 0.5rem; border-top: 1px solid #e2e8f0; margin-top: 2rem; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="report-header">
+    <h1>Forensic Reference-Integrity Audit <span class="v5-badge">v5</span> <span class="h9-badge">H9 Functional Check</span></h1>
+    <p><strong>Input:</strong> test-sets/temporal-impossibility.md · Mode A · 4 entries · Two runs</p>
+    <p><strong>Prompt:</strong> prompts/v5-auditor.md · <strong>Audit date:</strong> 2026-06-19</p>
+    <div class="meta">
+      <span>Run 1: Bare Mode A (no submission date) — exercises H9 sub-checks (a) and (c)</span>
+      <span>Run 2: With "Manuscript submitted: March 10, 2024" — exercises H9 sub-check (b)</span>
+      <span>Verification: Crossref API (journals/{ISSN}), PubMed, NLM Catalog, publisher sites</span>
+    </div>
+  </div>
+
+  <div class="notice">
+    <strong>Privacy notice:</strong> This is a test-set run against a known adversarial reference list designed to probe Heuristic 9 (temporal impossibility). No real manuscript content was processed. One privacy notice per session.
+  </div>
+
+  <!-- SECTION 1: Summary -->
+  <h2>1 · Executive Summary — Both Runs</h2>
+
+  <div class="summary-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Trap type</th>
+          <th>H9 sub-check</th>
+          <th>Run 1 (bare) tier</th>
+          <th>Run 2 (+ submission date) tier</th>
+          <th>Expected</th>
+          <th>Pass?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="num-col">1</td>
+          <td>Pre-existence: <em>Nursing for Women's Health</em> 2004 (journal launched 2007)</td>
+          <td>Sub-check (a)</td>
+          <td><span class="badge tier-H">H</span></td>
+          <td><span class="badge tier-H">H</span></td>
+          <td>Elevated or High</td>
+          <td>✓</td>
+        </tr>
+        <tr>
+          <td class="num-col">2</td>
+          <td>Impossible volume: JOGNN Volume 61 in 2023 (journal was on V52)</td>
+          <td>Sub-check (c)</td>
+          <td><span class="badge tier-H">H</span></td>
+          <td><span class="badge tier-H">H</span></td>
+          <td>Elevated or High</td>
+          <td>✓</td>
+        </tr>
+        <tr>
+          <td class="num-col">3</td>
+          <td>Clean — CDC MMWR control</td>
+          <td>N/A (no temporal trap)</td>
+          <td><span class="badge tier-D">D</span></td>
+          <td><span class="badge tier-D">D</span></td>
+          <td>Defensible</td>
+          <td>✓</td>
+        </tr>
+        <tr>
+          <td class="num-col">4</td>
+          <td>Post-submission: 2025 paper with March 2024 submission date</td>
+          <td>Sub-check (b)</td>
+          <td><span class="badge tier-H">H</span> (H1+H7 only; H9 not applicable without submission date)</td>
+          <td><span class="badge tier-H">H</span> (H9+H1+H7)</td>
+          <td>Elevated or High</td>
+          <td>✓</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="verdict-box pass">
+    <h3>✓ H9 Functional Check: PASS</h3>
+    <p>All three temporal-impossibility traps (refs 1, 2, 4) were detected at the expected tier (Elevated or High). The clean CDC control (ref 3) remained Defensible in both runs. Heuristic 9 correctly exercises all three sub-checks with zero false positives on this set.</p>
+    <div class="verdict-row">
+      <span class="verdict-chip">Ref 1 flagged (sub-check a) ✓</span>
+      <span class="verdict-chip">Ref 2 flagged (sub-check c) ✓</span>
+      <span class="verdict-chip">Ref 3 Defensible (control) ✓</span>
+      <span class="verdict-chip">Ref 4 flagged (sub-check b with date) ✓</span>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Run 1 — Bare -->
+  <h2>2 · Run 1 — Bare Mode A (No Submission Date)</h2>
+
+  <div class="run-header">
+    <h3>Input: reference list only, no manuscript header</h3>
+    <p>Exercises H9 sub-checks (a) pre-existence and (c) impossible volume. Sub-check (b) post-submission is skipped (no date provided).</p>
+  </div>
+
+  <div class="heatmap-row">
+    <div class="hm-cell h">1 · H</div>
+    <div class="hm-cell h">2 · H</div>
+    <div class="hm-cell d">3 · D</div>
+    <div class="hm-cell h">4 · H</div>
+  </div>
+  <p style="font-size:0.78rem;color:#6b7280;margin:4px 0 1rem;">Score = 100 − (3×12) − (1×3) = 61/100 · Orange zone (escalate)</p>
+
+  <div class="ref-card h-card">
+    <div class="ref-title">[1] Stiles AM &amp; Dowd T (2004) — Pre-existence trap <span class="badge tier-H">HIGH</span></div>
+    <div class="ref-cite">Stiles, A. M., &amp; Dowd, T. (2004). Neonatal abstinence syndrome… <em>Nursing for Women's Health</em>, 8(5), 394–403. https://doi.org/10.1177/1091592304270047</div>
+    <div class="sub-check"><strong>H9 sub-check (a) — Pre-existence FIRES:</strong> <em>Nursing for Women's Health</em> (NWH) was launched in 2007 as the renamed successor to <em>AWHONN Lifelines</em> (ISSN 1091-5923, published 1997–2006). The title "Nursing for Women's Health" did not exist in 2004. A 2004 citation to NWH is chronologically impossible under that title. Verified via Crossref journal metadata and publisher records: NWH earliest DOIs are from 2007. Note: the Crossref DOI 10.1177/1091592304270047 uses the old AWHONN Lifelines ISSN embedded in the Sage DOI pattern — this DOI returns HTTP 404 from Crossref, consistent with a paper that may have originally been in AWHONN Lifelines but is now presented under the NWH title.</div>
+    <div class="other-heur"><strong>H1 also fires:</strong> DOI 10.1177/1091592304270047 returns HTTP 404 from the Crossref API. Not registered.</div>
+    <div class="other-heur"><strong>H7 also fires:</strong> No paper by Stiles AM &amp; Dowd T on neonatal abstinence syndrome appears in PubMed under the NWH journal title for 2004.</div>
+    <p class="finding"><strong>Result:</strong> H9 (pre-existence) + H1 (dead DOI) + H7 (shadow paper under this journal/year) = <strong>HIGH</strong>. Multiple heuristics escalate from Elevated base to High per Stage 4 criteria.</p>
+  </div>
+
+  <div class="ref-card h-card">
+    <div class="ref-title">[2] Creanga AA &amp; Callaghan WM (2023) — Impossible volume trap <span class="badge tier-H">HIGH</span></div>
+    <div class="ref-cite">Creanga, A. A., &amp; Callaghan, W. M. (2023). Maternal mortality disparities in the United States by race and ethnicity. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing</em>, 61(2), 144–157. https://doi.org/10.1016/j.jogn.2023.01.005</div>
+    <div class="sub-check" style="background:#fce7f3;border-color:#f9a8d4;color:#831843;"><strong>H9 sub-check (c) — Impossible volume FIRES:</strong> JOGNN (ISSN 0884-2175) began publication in 1972 with Volume 1. The journal has published one volume per year since founding. Therefore: V1=1972, V52=2023 (1972+51=2023). Citing <strong>Volume 61</strong> in 2023 is chronologically impossible — JOGNN will not reach V61 until approximately 2032. Verified via Crossref journals API: JOGNN earliest DOIs from 1972; web search confirms V52 published in 2023.</div>
+    <div class="other-heur"><strong>H1 also fires:</strong> DOI 10.1016/j.jogn.2023.01.005 returns HTTP 404 from the Crossref API. Not registered — no record of this paper in JOGNN.</div>
+    <div class="other-heur"><strong>H7 also fires:</strong> No paper by Creanga AA &amp; Callaghan WM on maternal mortality disparities appears in JOGNN V61 (which does not yet exist). Creanga and Callaghan are real researchers, but this specific citation cannot be verified in any database.</div>
+    <p class="finding"><strong>Result:</strong> H9 (impossible volume) + H1 (dead DOI) + H7 (shadow paper) = <strong>HIGH</strong>.</p>
+  </div>
+
+  <div class="ref-card d-card">
+    <div class="ref-title">[3] Petersen EE et al. (2019) — Clean control <span class="badge tier-D">DEFENSIBLE</span></div>
+    <div class="ref-cite">Petersen, E. E., Davis, N. L., Goodman, D., Cox, S., Syverson, C., Seed, K., Shapiro-Mendoza, C., Callaghan, W. M., &amp; Barfield, W. (2019). Racial/ethnic disparities in pregnancy-related deaths — United States, 2007–2016. <em>Morbidity and Mortality Weekly Report</em>, 68(35), 762–765. https://doi.org/10.15585/mmwr.mm6835a3</div>
+    <div class="defensible-box">
+      <strong>All checks clear:</strong><br>
+      • H9 sub-check (a): MMWR has been published since 1952; V68 in 2019 is plausible (V1=1952, V68=2019). No pre-existence issue.<br>
+      • H9 sub-check (c): V68(35) for a 2019 CDC weekly publication is plausible. No volume/issue impossibility.<br>
+      • H9 sub-check (b): Sub-check skipped — no submission date in this run.<br>
+      • H1: DOI 10.15585/mmwr.mm6835a3 confirmed by Crossref: exact title, authors, journal, volume, issue, and pages match.<br>
+      • H7: Real paper verified — Petersen et al. 2019, MMWR 68(35):762–765, published by CDC.
+    </div>
+  </div>
+
+  <div class="ref-card h-card">
+    <div class="ref-title">[4] Montoya RJ &amp; Shen LK (2025) — <span class="badge tier-H">HIGH</span> (H1+H7; H9 not exercised in bare run)</div>
+    <div class="ref-cite">Montoya, R. J., &amp; Shen, L. K. (2025). Intrapartum fetal surveillance and adverse neonatal outcomes: A retrospective cohort analysis. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing</em>, 54(3), 211–224. https://doi.org/10.1016/j.jogn.2025.03.009</div>
+    <div class="na-box"><strong>H9 sub-check (a) — Not triggered:</strong> JOGNN V54=2025 is plausible (V52=2023, V53=2024, V54=2025). No pre-existence issue.</div>
+    <div class="na-box"><strong>H9 sub-check (b) — Skipped:</strong> No manuscript submission date provided in this run.</div>
+    <div class="na-box"><strong>H9 sub-check (c) — Not triggered:</strong> JOGNN V54(3) in 2025 is plausible. No volume/issue impossibility.</div>
+    <div class="other-heur"><strong>H1 fires:</strong> DOI 10.1016/j.jogn.2025.03.009 returns HTTP 404 from the Crossref API. Not registered.</div>
+    <div class="other-heur"><strong>H7 fires:</strong> No publication by Montoya RJ &amp; Shen LK on fetal surveillance appears in PubMed or Crossref. Shadow-paper signature.</div>
+    <p class="finding"><strong>Result in bare run:</strong> HIGH (H1 + H7). H9 is not exercised in the bare run for ref 4 — its temporal trap (post-submission) requires a submission date header, which was not provided. This is expected; see Run 2 for H9 activation.</p>
+  </div>
+
+  <!-- SECTION 3: Run 2 — With Submission Date -->
+  <h2>3 · Run 2 — With Submission Date Prefix</h2>
+
+  <div class="run-header" style="background:#fef9f0;border-color:#fde68a;">
+    <h3>Input: Manuscript submitted: March 10, 2024 + reference list</h3>
+    <p>The submission date header is parsed in Stage 0. H9 sub-check (b) (post-submission) now applies to all references. A 2025 reference year that cannot be confirmed as ahead-of-print or preprint will flag.</p>
+  </div>
+
+  <div class="heatmap-row">
+    <div class="hm-cell h">1 · H</div>
+    <div class="hm-cell h">2 · H</div>
+    <div class="hm-cell d">3 · D</div>
+    <div class="hm-cell h">4 · H</div>
+  </div>
+  <p style="font-size:0.78rem;color:#6b7280;margin:4px 0 1rem;">Score unchanged = 61/100 · Orange zone (escalate)</p>
+
+  <div class="ref-card h-card">
+    <div class="ref-title">[1] Stiles AM &amp; Dowd T (2004) — Unchanged: <span class="badge tier-H">HIGH</span></div>
+    <div class="ref-cite">Same citation as Run 1.</div>
+    <p class="finding">H9 sub-check (a) still fires (NWH didn't exist in 2004). H1 and H7 still fire. Submission date has no effect on this reference — the trap is pre-existence, not post-submission. Classification unchanged: <strong>HIGH</strong>.</p>
+  </div>
+
+  <div class="ref-card h-card">
+    <div class="ref-title">[2] Creanga AA &amp; Callaghan WM (2023) — Unchanged: <span class="badge tier-H">HIGH</span></div>
+    <div class="ref-cite">Same citation as Run 1.</div>
+    <p class="finding">H9 sub-check (c) still fires (JOGNN V61 impossible in 2023). Additionally, H9 sub-check (b) does NOT add a finding here: the reference year (2023) is before the submission date (March 2024), so no post-submission issue applies. Classification unchanged: <strong>HIGH</strong>.</p>
+  </div>
+
+  <div class="ref-card d-card">
+    <div class="ref-title">[3] Petersen EE et al. (2019) — Unchanged: <span class="badge tier-D">DEFENSIBLE</span></div>
+    <div class="ref-cite">Same citation as Run 1.</div>
+    <div class="defensible-box">Reference year 2019 is well before the March 2024 submission date. H9 sub-check (b) does not fire. All other checks remain clear. <strong>Defensible</strong> — CDC control holds in both runs.</div>
+  </div>
+
+  <div class="ref-card h-card">
+    <div class="ref-title">[4] Montoya RJ &amp; Shen LK (2025) — H9 NOW FIRES: <span class="badge tier-H">HIGH</span></div>
+    <div class="ref-cite">Montoya, R. J., &amp; Shen, L. K. (2025). Intrapartum fetal surveillance…<em>JOGNN</em> 54(3). DOI 10.1016/j.jogn.2025.03.009</div>
+    <div class="sub-check" style="background:#fef3c7;border-color:#fcd34d;color:#78350f;"><strong>H9 sub-check (b) — Post-submission FIRES:</strong> Submission date parsed from header: <strong>March 10, 2024</strong>. Reference year: <strong>2025</strong>. 2025 &gt; 2024 — reference postdates the stated submission date. Ahead-of-print verification: DOI 10.1016/j.jogn.2025.03.009 returns HTTP 404 (not registered) — cannot be confirmed as an ahead-of-print article. No preprint (arXiv, bioRxiv, medRxiv) record found. Post-submission temporal impossibility confirmed.</div>
+    <div class="other-heur"><strong>H1 still fires:</strong> DOI 404 unchanged.</div>
+    <div class="other-heur"><strong>H7 still fires:</strong> Shadow-paper signature unchanged.</div>
+    <p class="finding"><strong>Result with submission date:</strong> H9 sub-check (b) + H1 + H7 = <strong>HIGH</strong>. H9 escalates the existing HIGH to the same tier (already HIGH from H1+H7); the addition confirms temporal impossibility as a distinct mechanism, not merely a fabrication-by-absence finding.</p>
+  </div>
+
+  <!-- SECTION 4: APA list -->
+  <h2>4 · Cleaned APA 7th-Edition Reference List</h2>
+  <div class="apa-wrap">
+    <p style="font-size:0.82rem;color:#6b7280;margin-bottom:0.8rem;">Reference list applies to both runs (same input). Submitted form retained where anomaly cannot be corrected without a verified record; [FLAGGED] annotation applied.</p>
+    <ol class="apa-list">
+      <li>Stiles, A. M., &amp; Dowd, T. (2004). Neonatal abstinence syndrome: Assessment and management of the opioid-exposed neonate. <em>AWHONN Lifelines, 8</em>(5), 394–403. <span class="apa-flagged">[FLAGGED — journal title "Nursing for Women's Health" cannot have published in 2004; journal launched under that title in 2007. DOI 404. The predecessor title AWHONN Lifelines (ISSN 1091-5923) was active in 2004; title corrected to likely intended journal. See forensic audit — H9 sub-check (a), H1, H7.]</span></li>
+      <li>Creanga, A. A., &amp; Callaghan, W. M. (2023). Maternal mortality disparities in the United States by race and ethnicity. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing, 61</em>(2), 144–157. https://doi.org/10.1016/j.jogn.2023.01.005 <span class="apa-flagged">[FLAGGED — Volume 61 impossible for JOGNN in 2023 (journal was on V52). DOI 404. See forensic audit — H9 sub-check (c), H1, H7.]</span></li>
+      <li>Petersen, E. E., Davis, N. L., Goodman, D., Cox, S., Syverson, C., Seed, K., Shapiro-Mendoza, C., Callaghan, W. M., &amp; Barfield, W. (2019). Racial/ethnic disparities in pregnancy-related deaths — United States, 2007–2016. <em>Morbidity and Mortality Weekly Report, 68</em>(35), 762–765. https://doi.org/10.15585/mmwr.mm6835a3</li>
+      <li>Montoya, R. J., &amp; Shen, L. K. (2025). Intrapartum fetal surveillance and adverse neonatal outcomes: A retrospective cohort analysis. <em>Journal of Obstetric, Gynecologic &amp; Neonatal Nursing, 54</em>(3), 211–224. https://doi.org/10.1016/j.jogn.2025.03.009 <span class="apa-flagged">[FLAGGED — 2025 reference postdates March 2024 submission; DOI 404; no ahead-of-print or preprint record confirmed. See forensic audit — H9 sub-check (b) [Run 2 only], H1, H7.]</span></li>
+    </ol>
+  </div>
+
+  <!-- SECTION 5: PRISMA -->
+  <h2>5 · PRISMA-Style Verification Flow</h2>
+  <div class="prisma-wrap">
+    <div class="run-prisma">
+      <div>
+        <div class="pr-run-label">Run 1 — Bare Mode A</div>
+        <div class="pr-node">4 references submitted</div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-node">Stage 0: Mode A detected<br>No submission date — sub-check (b) skipped</div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-node">Live verification<br>Crossref · PubMed · NLM Catalog</div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-node">H1–H7 + H9 applied<br>H8 omitted (Mode A)</div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-tiers">
+          <span class="pr-tier h">H: 3</span>
+          <span class="pr-tier d">D: 1</span>
+        </div>
+        <div style="font-size:0.75rem;color:#9ca3af;margin-top:6px;text-align:center;">H9 active: sub-checks (a)+(c) only</div>
+      </div>
+      <div>
+        <div class="pr-run-label">Run 2 — With Submission Date</div>
+        <div class="pr-node">4 references submitted<br><strong>+ "Manuscript submitted: March 10, 2024"</strong></div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-node">Stage 0: Submission date parsed<br>Sub-check (b) now active</div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-node">Live verification<br>Crossref · PubMed · NLM Catalog</div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-node">H1–H7 + H9 applied<br>H8 omitted (Mode A)</div>
+        <div class="pr-arrow">↓</div>
+        <div class="pr-tiers">
+          <span class="pr-tier h">H: 3</span>
+          <span class="pr-tier d">D: 1</span>
+        </div>
+        <div style="font-size:0.75rem;color:#9ca3af;margin-top:6px;text-align:center;">H9 active: all sub-checks (a)+(b)+(c) — ref 4 H9 triggers here</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: Appendix -->
+  <h2>6 · Forensic Appendix</h2>
+  <div class="appendix-wrap">
+
+    <h3>Methodology</h3>
+    <p>The 4-entry temporal-impossibility test set was run twice in Mode A. Run 1 used the bare reference list; Run 2 prepended the line "Manuscript submitted: March 10, 2024," which the v5 prompt parses in Stage 0. Both runs applied 8 heuristics (H1–H7 + H9; H8 omitted in Mode A). H9 verification used the Crossref journals API (<code>api.crossref.org/journals/{ISSN}</code>) to retrieve journal founding dates and volume histories, supplemented by NLM Catalog records, web search for volume confirmation, and direct DOI resolution attempts via the Crossref works API.</p>
+
+    <h3>H9 Sub-Check Definitions and Performance</h3>
+    <table>
+      <thead>
+        <tr><th>Sub-check</th><th>Condition that triggers</th><th>Ref tested</th><th>Result</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>(a) Pre-existence</strong></td>
+          <td>Reference year predates the journal's first published issue under its cited title</td>
+          <td>Ref 1: NWH 2004 (NWH launched 2007)</td>
+          <td>✓ FIRES — Both runs</td>
+        </tr>
+        <tr>
+          <td><strong>(b) Post-submission</strong></td>
+          <td>Reference year postdates the stated submission date and cannot be confirmed as ahead-of-print or preprint</td>
+          <td>Ref 4: 2025 paper / March 2024 submission</td>
+          <td>✓ FIRES — Run 2 only (sub-check requires submission date)</td>
+        </tr>
+        <tr>
+          <td><strong>(c) Impossible volume/issue</strong></td>
+          <td>Cited volume or issue number cannot exist for the journal in the stated year</td>
+          <td>Ref 2: JOGNN V61 in 2023 (V52=2023)</td>
+          <td>✓ FIRES — Both runs</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Journal Verification — Key Findings</h3>
+    <ul>
+      <li><strong>Nursing for Women's Health</strong>: Launched 2007 as the renamed successor to <em>AWHONN Lifelines</em> (published 1997–2006 under ISSN 1091-5923). Crossref journal metadata confirms earliest NWH DOIs from 2007. A 2004 citation to "Nursing for Women's Health" is temporally impossible under that title. Note: AWHONN Lifelines V8 was published in 2004 — the correct predecessor title for that year.</li>
+      <li><strong>JOGNN (ISSN 0884-2175)</strong>: Founded 1972, V1=1972. Volume increments by 1 per year. V52 = 2023 (confirmed by web search: JOGNN V52, Issue 4, July 2023). V61 would be published in approximately 2032. Citing V61 in 2023 is impossible — 9 volumes ahead of the actual publication.</li>
+      <li><strong>MMWR</strong>: Published weekly since 1952. V68 in 2019 confirmed by Crossref DOI resolution. Volume/issue plausible. No temporal issues.</li>
+    </ul>
+
+    <h3>Scoring</h3>
+    <p>Both runs: <code>Score = 100 − (3 × 12) − (0 × 5) − (0 × 2) − (1 × 3) = 61/100</code>. Orange zone (50–69, escalate). Score reflects that 3 of 4 references are High-risk temporal fabrications. The adversarial intent of this test set accounts for the score.</p>
+
+    <h3>Audit Limitations</h3>
+    <ul>
+      <li>H9 founding-date data depends on Crossref and NLM Catalog coverage; smaller or recently renamed journals may have incomplete records.</li>
+      <li>The post-submission sub-check (b) requires a parsed submission date. In bare Mode A runs without a date header, this sub-check is silently skipped — a reference with a post-submission year will not be flagged unless it also fails another sub-check or another heuristic.</li>
+      <li>Ahead-of-print exemption in sub-check (b): if a 2025 paper cited in a 2024 submission were a registered ahead-of-print article with a confirmed DOI, it would not flag. This test set's ref 4 has a 404 DOI, so the exemption cannot apply.</li>
+    </ul>
+
+    <h3>COPE Alignment</h3>
+    <p>All three High-risk references involve suspected fabricated data. Recommended COPE flowchart: <strong>Suspected Fabricated Data in a Submitted Manuscript</strong>. Escalation sequence: author query → editorial investigation → consider rejection and notify publisher if fabrication confirmed. The density of temporal impossibility findings combined with dead DOIs and unverifiable papers across refs 1, 2, and 4 is consistent with systematic reference fabrication.</p>
+
+  </div>
+
+  <footer>
+    Generated by the Forensic Reference-Integrity Auditor (v5) · prompts/v5-auditor.md · 2026-06-19 · Mode A · Two runs on test-sets/temporal-impossibility.md.<br>
+    Live verification: Crossref API (journals and works endpoints), PubMed, NLM Catalog, web search.<br>
+    This is a test-set run; findings are for validation purposes only.
+  </footer>
+
+</div>
+</body>
+</html>

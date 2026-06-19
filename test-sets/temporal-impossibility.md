@@ -35,7 +35,7 @@ Manuscript submitted: March 10, 2024
 
 ## Reference List
 
-Paste the following into the auditor for testing. The trap index above and the manuscript submission date prefix (for H9 sub-check c) should NOT be included in a bare reference-list run.
+Paste the following into the auditor for testing. The trap index above and the manuscript submission date prefix (for H9 sub-check b) should NOT be included in a bare reference-list run.
 
 ---
 
