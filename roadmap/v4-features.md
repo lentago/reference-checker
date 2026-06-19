@@ -2,7 +2,7 @@
 
 This document describes the heuristics and capabilities planned for v4 of the Forensic Reference-Integrity Auditor. Each feature includes a description, implementation approach, priority assessment, and dependencies.
 
-**Status:** Planning. No v4 features have been implemented or tested yet.
+**Status:** Ongoing. Sneaked-reference detection (Heuristic 8), temporal impossibility checks (Heuristic 9), and full COPE flowchart alignment shipped in v5. Remaining items below are planned.
 
 ---
 
@@ -51,24 +51,14 @@ This document describes the heuristics and capabilities planned for v4 of the Fo
 
 ### Temporal Impossibility Checks
 
-**Priority:** High
+**Status: Shipped in v5** ([#6](../../issues/6))
 
 **What it catches:** Citations with dates that are logically impossible:
 - Reference year predates the journal's founding year
-- Reference year postdates the manuscript submission date
+- Reference year postdates the manuscript submission date (with ahead-of-print/preprint exception)
 - Volume/issue numbers that don't exist for the stated year
-- References to "forthcoming" papers that were never published
 
-**Implementation approach:**
-- Maintain or query a lookup of journal founding dates (Crossref, ISSN portal, Ulrichsweb)
-- Compare reference year against journal founding year
-- Compare reference year against manuscript submission/acceptance date (if available)
-- Cross-check volume/issue against Crossref's year-to-volume mapping for the journal
-- For "in press" or "forthcoming" citations, verify that the paper was eventually published
-
-**Why high priority:** Temporal impossibility is an unambiguous signal. A paper published in a journal that didn't exist yet is definitively fabricated, no judgment call required. Low false-positive rate, high signal value.
-
-**Dependencies:** Journal founding date data. Crossref provides some of this, but coverage is incomplete for smaller or newer journals.
+**Implementation:** Shipped as Heuristic 9 in `prompts/v5-auditor.md`. Verification uses Crossref journal metadata (`api.crossref.org/journals/{ISSN}`) and the NLM Catalog. Name-change exception implemented: older journal names cited with dates valid for that period are not flagged. Risk calibration: Elevated in isolation, High when combined with any other heuristic trigger. Dedicated test set: `test-sets/temporal-impossibility.md`.
 
 ---
 
@@ -136,21 +126,18 @@ This document describes the heuristics and capabilities planned for v4 of the Fo
 
 ### COPE Flowchart Alignment
 
-**Priority:** Low (but high value for productization)
+**Status: Shipped in v5** ([#9](../../issues/9))
 
-**What it catches:** N/A — this is an output enhancement, not a detection heuristic.
+**What it does:** Structures the auditor's recommendations according to COPE (Committee on Publication Ethics) investigation flowcharts, so an editor can move from detection to action without a separate triage step.
 
-**What it does:** Structures the auditor's recommendations according to COPE (Committee on Publication Ethics) investigation flowcharts. When the auditor identifies probable fabrication, the output would include the specific COPE flowchart that applies and the recommended investigation steps.
+**Implementation:** The v4 single-line COPE note has been expanded into a full structured mapping in `prompts/v5-auditor.md` (Section 3 and Section 6) and `docs/heuristics.md`. Five COPE flowcharts are mapped:
+- Suspected Fabricated Data in a Submitted Manuscript
+- Suspected Fabricated Data in a Published Article
+- Authorship Disputes
+- Suspected Ghost, Gift, or Guest Authorship
+- Suspected Redundant (Duplicate) Publication
 
-**Implementation approach:**
-- Map risk classifications to COPE flowchart entry points
-- For High-risk references: link to COPE's "Suspected fabricated data" flowchart
-- For retracted references: link to COPE's "Systematic manipulation of the publication process" flowchart
-- Include recommended next steps aligned with COPE procedures (contact author, contact institution, etc.)
-
-**Why low priority:** This is a presentation/documentation enhancement. It doesn't improve detection — it improves the editorial workflow after detection. High value for productization because it demonstrates alignment with industry governance standards.
-
-**Dependencies:** Thorough understanding of COPE flowchart logic and when each applies. COPE guidelines are publicly available.
+Three escalation levels are distinguished: author query, editorial investigation, and publisher/institution notification. High-risk references include the specific applicable COPE flowchart and a concrete next step. A COPE methodology reference appears in the Forensic Appendix.
 
 ---
 
@@ -190,13 +177,13 @@ Make the HTML report output customizable:
 
 ## Prioritized Implementation Order
 
-1. **Sneaked-reference detection** — Highest signal-to-effort ratio. Testable immediately.
+1. ~~**Sneaked-reference detection**~~ — Shipped as Heuristic 8 in v4.
 2. **DOI-independent metadata-mismatch detection** — Empirically the dominant manipulation in real-article tests; generalizes the Double-Real check to DOI-less references with no new data source.
-3. **Temporal impossibility checks** — Unambiguous signals, low false-positive rate.
+3. ~~**Temporal impossibility checks**~~ — Shipped as Heuristic 9 in v5.
 4. **API-based orchestration** — Prerequisite for scaling and for batch-pattern detection.
 5. **Crossref retraction API integration** — Optimization of existing capability.
 6. **Predatory journal flagging** — Valuable but requires careful calibration.
 7. **Batch-pattern detection** — High value but requires persistent state infrastructure.
-8. **COPE flowchart alignment** — Presentation enhancement for productization.
+8. ~~**COPE flowchart alignment**~~ — Shipped in v5 (fully mapped, five flowcharts, three escalation levels).
 9. **Token budget management** — Operational optimization.
 10. **Report template system** — Customization for publisher adoption.
