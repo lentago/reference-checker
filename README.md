@@ -29,9 +29,9 @@ The auditor runs as a structured prompt on Anthropic's Claude (Opus), using live
 - **Retraction Watch** — Known retraction and expression-of-concern database
 - **Publisher sites** — Direct verification against journal archives
 
-### Forensic Heuristics (v3)
+### Forensic Heuristics (v4)
 
-Each reference is evaluated against seven forensic heuristics designed to catch progressively more sophisticated fabrication:
+Each reference is evaluated against eight forensic heuristics designed to catch progressively more sophisticated fabrication:
 
 | # | Heuristic | What It Catches |
 |---|---|---|
@@ -42,6 +42,7 @@ Each reference is evaluated against seven forensic heuristics designed to catch 
 | 5 | **Double-Real Trap** | Real DOI + real-sounding metadata from a *different* paper, creating a composite that passes surface checks |
 | 6 | **Journal Mutation** | Slightly altered journal titles (word substitution, abbreviation manipulation) that point to nonexistent or different journals |
 | 7 | **Shadow-Paper Signatures** | Citations with plausible metadata that match no known publication — fully fabricated but constructed to look legitimate |
+| 8 | **Sneaked Reference** | References present in the list but never cited in the manuscript body — reference-list padding designed to inflate the apparent evidence base. **Mode B (full manuscript) only**; skipped in Mode A (reference list only). |
 
 ### Risk Classification
 
@@ -82,7 +83,7 @@ The auditor produces a self-contained HTML report with six sections, designed fo
 
 ### Running an Audit
 
-1. Provide the prompt (see `prompts/v3-auditor.md`) to Claude with web search enabled.
+1. Provide the prompt (see `prompts/v4-auditor.md`) to Claude with web search enabled.
 2. Paste or upload the reference list to be audited.
 3. The auditor will systematically verify each reference and produce the HTML report.
 
@@ -114,16 +115,19 @@ Multiple real articles from JOGNN, MCN, and related nursing journals verified to
 
 ## Roadmap
 
-### v4 Heuristics (Planned)
-- **Batch-pattern detection** — Statistical analysis across multiple submissions to identify coordinated fabrication campaigns
-- **Crossref Retraction API integration** — Direct programmatic retraction checking
-- **Predatory journal flagging** — Cabells-style methodology for identifying predatory or questionable venues
-- **Temporal impossibility checks** — Citations with dates that predate the journal's existence or postdate the submission
-- **Sneaked-reference detection** — References that appear in the list but are never cited in the manuscript body
-- **COPE flowchart alignment** — Structured recommendation output aligned with Committee on Publication Ethics investigation procedures
+### Shipped in v4
+- **Sneaked-reference detection** — References present in the list but never cited in the manuscript body (Mode B / full manuscript). Shipped as Heuristic 8. (Closes [#5](../../issues/5).)
+- **COPE flowchart alignment** — *Partially shipped.* A COPE note for H-tier findings already appears in the Forensic Appendix. Full structured flowchart mapping tracked in [#9](../../issues/9).
+
+### Planned
+- **Temporal impossibility checks** — Citations with dates that predate the journal's existence or postdate the submission. ([#6](../../issues/6))
+- **Predatory journal flagging** — Cabells-style methodology for identifying predatory or questionable venues. ([#7](../../issues/7))
+- **Crossref Retraction API integration** — Direct programmatic retraction checking in place of web-search fallback. ([#8](../../issues/8))
+- **Batch-pattern detection** — Statistical analysis across multiple submissions to identify coordinated fabrication campaigns. ([#10](../../issues/10))
+- **Pipeline decomposition** — Multi-model API pipeline (Haiku → Sonnet → Opus) for cost optimization at editorial scale. ([#11](../../issues/11))
 
 ### Architecture (Planned)
-Pipeline decomposition across model tiers for cost optimization at editorial scale:
+Pipeline decomposition across model tiers for cost optimization at editorial scale — see [#11](../../issues/11):
 
 | Stage | Model | Role |
 |---|---|---|
@@ -154,7 +158,7 @@ Nothing gets added to the spec until it's been tested. The prompt is the artifac
 ```
 ├── README.md
 ├── prompts/
-│   └── v3-auditor.md          # Current production prompt
+│   └── v4-auditor.md          # Current production prompt (v3 retained for diffing)
 ├── test-sets/
 │   ├── adversarial-30.md      # Adversarial reference list with layered traps
 │   └── real-articles/         # Real article reference lists used for validation

@@ -138,6 +138,27 @@ The only way to catch them is exhaustive verification — checking that the spec
 
 ---
 
+## 8. Sneaked Reference
+
+**What it catches:** References that appear in the reference list but are never cited in the manuscript body. This pattern is used to inflate the apparent evidence base, misrepresent the scope of literature reviewed, or launder fabricated sources past detection by mixing them with real citations.
+
+**Availability:** Mode B (full manuscript input) only. When the auditor receives only a reference list (Mode A), this heuristic is skipped and noted as unavailable in the report.
+
+**How it works:** During Stage 0 input detection, the auditor builds an in-text citation index by scanning the manuscript body for all parenthetical Author-Year pairs. After normalization (handling variants like "Smith et al., 2022" and "Smith and colleagues, 2022"), each reference list entry is cross-referenced against this index. Any reference with no matching in-text citation becomes an orphan candidate.
+
+Orphan references are assigned **Elevated** risk by default. If the orphan also triggers any other heuristic (e.g., it is also a shadow paper or has a homoglyph), the combination escalates to **High** risk — a sneaked reference that is also fabricated is the highest-risk finding the auditor can return.
+
+**Why it matters:** A fabricated reference buried among 30 legitimate, well-cited sources is much harder to spot than an isolated suspicious entry. Sneaking it in without any in-text citation is the insertion mechanism. Once detected, the citation pattern (real sources cited, suspicious one never referenced) becomes itself an integrity signal.
+
+**Limitations:**
+- Citations appearing only in tables, figures, or appendices may not be included in the pasted manuscript text and will appear as orphans even though they are legitimately cited. The auditor notes this caveat and recommends the editor verify against the full submitted file.
+- Citation forms other than APA parenthetical (e.g., numbered footnotes, endnotes) may not be caught by the parser. The Stage 0 extraction summary notes the citation style identified.
+- A reference cited only in an abstract that was not included in the pasted text will also appear as an orphan.
+
+**Test evidence:** Not yet validated against the adversarial test set (Mode B / full-manuscript testing in progress). Validated structurally against two real-article audit runs that included manuscript body text.
+
+---
+
 ## Heuristic Interaction
 
 These heuristics are not independent — they interact and compound:
@@ -146,6 +167,7 @@ These heuristics are not independent — they interact and compound:
 - A **Shadow Paper** with a fabricated DOI will trigger both DOI Resolution failure and Shadow-Paper classification.
 - A **Homoglyph** in a journal title may also trigger Journal Mutation if the substitution creates a string that doesn't match the real journal name.
 - **Digit-Swap** combined with **Author-Shifting** on the same reference is a strong coordinated-fabrication signal.
+- A **Sneaked Reference** (Heuristic 8) that also triggers any other heuristic escalates immediately to High risk — the combination of "never cited in the body" and "metadata anomaly" is the highest-risk finding the auditor can produce.
 
 The risk classification system accounts for these interactions. A reference triggering multiple heuristics receives a higher risk tier than one triggering a single heuristic in isolation.
 
@@ -158,4 +180,4 @@ The risk classification system accounts for these interactions. A reference trig
 | **v1** | DOI resolution only |
 | **v2** | Added homoglyph detection, digit-swap analysis, shadow-paper signatures |
 | **v3** | Added author-shifting, Double-Real trap detection, journal mutation. Refined scoring formula. Added grey-literature handling. |
-| **v4 (planned)** | Batch-pattern detection, temporal impossibility checks, sneaked-reference detection, predatory journal flagging |
+| **v4** | Added sneaked-reference detection (Heuristic 8, Mode B only). Added Mode A/B input detection stage. Added Cochrane Library and government sources to verification set. Added COPE alignment note for H-tier findings. |
