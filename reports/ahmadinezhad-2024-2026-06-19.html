@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forensic Reference Audit — Ahmadinezhad et al. (2024)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #222; line-height: 1.6; }
+  .page-header { background: #1a2340; color: white; padding: 28px 40px; }
+  .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  .page-header .subtitle { font-size: 0.92rem; color: #b0bcd8; }
+  .page-header .meta { font-size: 0.82rem; color: #8898b8; margin-top: 8px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  .section { background: white; border-radius: 10px; padding: 28px 32px; margin-bottom: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .section h2 { font-size: 1.15rem; font-weight: 700; color: #1a2340; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #e8eaf2; }
+  .section h3 { font-size: 1rem; font-weight: 600; color: #2c3a5a; margin: 18px 0 10px; }
+
+  /* Dashboard */
+  .dashboard-grid { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: start; }
+  .gauge-wrap { text-align: center; }
+  .gauge-score { font-size: 2.8rem; font-weight: 800; color: #c0392b; margin-top: -8px; }
+  .gauge-label { font-size: 0.8rem; color: #666; margin-top: 2px; }
+  .stat-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-card { border-radius: 8px; padding: 16px 14px; text-align: center; }
+  .stat-card .num { font-size: 2rem; font-weight: 800; }
+  .stat-card .lbl { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+  .card-total { background: #eef0f8; color: #1a2340; }
+  .card-high { background: #fdecea; color: #c0392b; }
+  .card-elev { background: #fff4e5; color: #d07000; }
+  .card-def { background: #eafaf1; color: #1a7a40; }
+
+  /* Heatmap */
+  .heatmap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .heatmap-cell { width: 36px; height: 36px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; color: white; cursor: default; }
+  .hm-H { background: #c0392b; }
+  .hm-E { background: #e67e22; }
+  .hm-M { background: #f1c40f; color: #444; }
+  .hm-D { background: #27ae60; }
+  .heatmap-legend { display: flex; gap: 18px; margin-top: 10px; font-size: 0.78rem; }
+  .heatmap-legend span { display: flex; align-items: center; gap: 5px; }
+  .leg-swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+  th { background: #1a2340; color: white; padding: 10px 12px; text-align: left; font-weight: 600; font-size: 0.8rem; }
+  td { padding: 9px 12px; border-bottom: 1px solid #e8eaf2; vertical-align: top; }
+  tr:hover td { background: #f8f9ff; }
+  .tier-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+  .badge-H { background: #fdecea; color: #c0392b; border: 1px solid #e8a09a; }
+  .badge-E { background: #fff4e5; color: #d07000; border: 1px solid #f0c070; }
+  .badge-M { background: #fffde7; color: #a07800; border: 1px solid #e0d080; }
+  .badge-D { background: #eafaf1; color: #1a7a40; border: 1px solid #8ed4a8; }
+  .finding-row td { background: #fff8f8; font-size: 0.82rem; color: #5a2020; padding-top: 4px; padding-bottom: 10px; border-bottom: 2px solid #f0d8d8; }
+  .finding-label { font-weight: 700; color: #c0392b; }
+  .refnum { font-weight: 700; color: #1a2340; }
+  .src-list { font-size: 0.78rem; color: #555; }
+
+  /* Suspicion Index */
+  .suspicion-entry { border: 1px solid #e0e4f0; border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+  .suspicion-header { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #f5f6fa; border-bottom: 1px solid #e0e4f0; }
+  .suspicion-body { padding: 14px 16px; font-size: 0.87rem; }
+  .suspicion-body p { margin-bottom: 8px; }
+  .cope-box { background: #fff8e1; border-left: 4px solid #f9a825; padding: 10px 14px; border-radius: 0 6px 6px 0; margin-top: 10px; font-size: 0.84rem; }
+  .cope-box strong { display: block; margin-bottom: 4px; color: #7a5800; }
+
+  /* APA list */
+  .apa-list { counter-reset: apa-counter; }
+  .apa-entry { counter-increment: apa-counter; display: grid; grid-template-columns: 28px 1fr; gap: 8px; margin-bottom: 12px; font-size: 0.87rem; line-height: 1.55; }
+  .apa-entry::before { content: counter(apa-counter) "."; font-weight: 700; color: #1a2340; padding-top: 1px; }
+  .flagged-ref { background: #fff8f8; border-left: 3px solid #c0392b; padding: 6px 10px; border-radius: 0 5px 5px 0; }
+  .flagged-tag { color: #c0392b; font-weight: 700; font-size: 0.8rem; }
+
+  /* PRISMA / Flow */
+  .flow-wrap { overflow-x: auto; }
+  .flow-diagram { display: flex; flex-direction: column; align-items: center; gap: 0; min-width: 520px; }
+  .flow-box { background: #eef0f8; border: 2px solid #1a2340; border-radius: 8px; padding: 10px 24px; text-align: center; font-size: 0.85rem; font-weight: 600; color: #1a2340; min-width: 260px; }
+  .flow-arrow { font-size: 1.4rem; color: #1a2340; line-height: 1; margin: 4px 0; }
+  .flow-split { display: flex; gap: 24px; align-items: flex-start; position: relative; }
+  .flow-split-branch { display: flex; flex-direction: column; align-items: center; }
+  .flow-split-label { font-size: 0.75rem; color: #555; margin-bottom: 4px; }
+  .flow-tier-row { display: flex; gap: 10px; margin-top: 8px; }
+  .flow-tier { border-radius: 6px; padding: 7px 14px; font-size: 0.82rem; font-weight: 700; text-align: center; }
+  .flow-h { background: #fdecea; color: #c0392b; border: 1px solid #e8a09a; }
+  .flow-e { background: #fff4e5; color: #d07000; border: 1px solid #f0c070; }
+  .flow-m { background: #fffde7; color: #a07800; border: 1px solid #e0d080; }
+  .flow-d { background: #eafaf1; color: #1a7a40; border: 1px solid #8ed4a8; }
+  .flow-connector { border-left: 2px dashed #aab; height: 24px; }
+
+  /* Appendix */
+  .appendix-section { margin-bottom: 22px; }
+  .appendix-section h3 { font-size: 0.98rem; color: #1a2340; font-weight: 700; margin-bottom: 10px; }
+  .appendix-section p { font-size: 0.86rem; color: #333; margin-bottom: 8px; }
+  .heuristic-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; margin-top: 6px; }
+  .heuristic-table th { background: #2c3a5a; color: white; padding: 8px 10px; text-align: left; }
+  .heuristic-table td { padding: 7px 10px; border-bottom: 1px solid #e8eaf2; vertical-align: top; }
+  .heuristic-table tr:hover td { background: #f5f6fa; }
+  .cope-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 6px; }
+  .cope-table th { background: #2c3a5a; color: white; padding: 8px 10px; text-align: left; }
+  .cope-table td { padding: 7px 10px; border-bottom: 1px solid #e8eaf2; vertical-align: top; }
+  .cope-table tr:hover td { background: #f5f6fa; }
+  .score-formula { background: #f0f4ff; border: 1px solid #c0cce8; border-radius: 6px; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 0.88rem; margin: 10px 0; color: #1a2340; }
+  .alert-banner { background: #fdecea; border: 1px solid #e8a09a; border-radius: 8px; padding: 12px 18px; margin-bottom: 18px; font-size: 0.88rem; color: #7a1a10; }
+  .alert-banner strong { display: block; font-size: 0.95rem; margin-bottom: 4px; }
+  .limitation-list { list-style: disc; padding-left: 22px; font-size: 0.85rem; color: #333; }
+  .limitation-list li { margin-bottom: 7px; }
+  .escalation-list { list-style: decimal; padding-left: 22px; font-size: 0.85rem; color: #333; }
+  .escalation-list li { margin-bottom: 7px; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .stat-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Forensic Reference-Integrity Audit Report</h1>
+  <div class="subtitle">Ahmadinezhad, G. S., Karimi, F. Z., Abdollahi, M., &amp; NaviPour, E. (2024). Association between postpartum depression and breastfeeding self-efficacy in mothers: a systematic review and meta-analysis. <em>BMC Pregnancy and Childbirth</em>, 24(1), 273.</div>
+  <div class="meta">Auditor: Forensic Reference-Integrity Auditor v5 &nbsp;|&nbsp; Mode: A (reference list only) &nbsp;|&nbsp; Audit date: 2026-06-19 &nbsp;|&nbsp; References audited: 30 &nbsp;|&nbsp; H8 (sneaked reference): not applicable in Mode A</div>
+</div>
+
+<div class="container">
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 1: EXECUTIVE DASHBOARD
+═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Section 1: Executive Dashboard</h2>
+
+  <div class="dashboard-grid">
+    <!-- Gauge -->
+    <div class="gauge-wrap">
+      <svg width="200" height="120" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Reference list score gauge: 5 out of 100">
+        <!-- Semicircular gauge: left (180 deg) = 0, right (0 deg) = 100 -->
+        <!-- Green zone 85-100: arc from ~153 deg to 0 deg -->
+        <path d="M 18 100 A 82 82 0 0 1 33.6 44.8" fill="none" stroke="#27ae60" stroke-width="16" stroke-linecap="butt"/>
+        <!-- Amber zone 70-84 -->
+        <path d="M 33.6 44.8 A 82 82 0 0 1 64.2 19.5" fill="none" stroke="#f39c12" stroke-width="16" stroke-linecap="butt"/>
+        <!-- Orange zone 50-69 -->
+        <path d="M 64.2 19.5 A 82 82 0 0 1 120.6 12.1" fill="none" stroke="#e67e22" stroke-width="16" stroke-linecap="butt"/>
+        <!-- Red zone 0-49: arc from 180 deg to ~81 deg -->
+        <path d="M 120.6 12.1 A 82 82 0 0 1 182 100" fill="none" stroke="#c0392b" stroke-width="16" stroke-linecap="butt"/>
+        <!-- Needle: score=5 → angle from left = 180 - (5/100)*180 = 171 deg
+             x = 100 + 72*cos(171°) = 100 + 72*(-0.9877) ≈ 29
+             y = 100 - 72*sin(171°) = 100 - 72*(0.1564) ≈ 89 -->
+        <line x1="100" y1="100" x2="29" y2="89" stroke="#1a2340" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="100" cy="100" r="6" fill="#1a2340"/>
+        <text x="14" y="117" font-size="9" fill="#888" font-family="Arial">0</text>
+        <text x="88" y="10" font-size="9" fill="#888" font-family="Arial">50</text>
+        <text x="140" y="30" font-size="9" fill="#888" font-family="Arial">70</text>
+        <text x="168" y="66" font-size="9" fill="#888" font-family="Arial">85</text>
+        <text x="176" y="112" font-size="9" fill="#888" font-family="Arial">100</text>
+      </svg>
+      <div class="gauge-score">5</div>
+      <div class="gauge-label">Reference List Score<br><small>(0–49 = systemic concern)</small></div>
+    </div>
+
+    <!-- Stat cards + heatmap -->
+    <div>
+      <div class="stat-cards">
+        <div class="stat-card card-total">
+          <div class="num">30</div>
+          <div class="lbl">References audited</div>
+        </div>
+        <div class="stat-card card-high">
+          <div class="num">1</div>
+          <div class="lbl">High-risk flags</div>
+        </div>
+        <div class="stat-card card-elev">
+          <div class="num">0</div>
+          <div class="lbl">Elevated flags</div>
+        </div>
+        <div class="stat-card card-def">
+          <div class="num">25</div>
+          <div class="lbl">Defensible (verified clean)</div>
+        </div>
+      </div>
+
+      <div style="margin-top:8px; font-size:0.82rem; color:#555; margin-bottom:6px;">Risk heatmap — one cell per reference, ordered sequentially:</div>
+      <div class="heatmap">
+        <div class="heatmap-cell hm-D" title="Ref 1 — Defensible">1</div>
+        <div class="heatmap-cell hm-D" title="Ref 2 — Defensible">2</div>
+        <div class="heatmap-cell hm-D" title="Ref 3 — Defensible">3</div>
+        <div class="heatmap-cell hm-M" title="Ref 4 — Moderate">4</div>
+        <div class="heatmap-cell hm-D" title="Ref 5 — Defensible">5</div>
+        <div class="heatmap-cell hm-H" title="Ref 6 — HIGH">6</div>
+        <div class="heatmap-cell hm-D" title="Ref 7 — Defensible">7</div>
+        <div class="heatmap-cell hm-D" title="Ref 8 — Defensible">8</div>
+        <div class="heatmap-cell hm-D" title="Ref 9 — Defensible">9</div>
+        <div class="heatmap-cell hm-D" title="Ref 10 — Defensible">10</div>
+        <div class="heatmap-cell hm-M" title="Ref 11 — Moderate">11</div>
+        <div class="heatmap-cell hm-D" title="Ref 12 — Defensible">12</div>
+        <div class="heatmap-cell hm-D" title="Ref 13 — Defensible">13</div>
+        <div class="heatmap-cell hm-D" title="Ref 14 — Defensible">14</div>
+        <div class="heatmap-cell hm-D" title="Ref 15 — Defensible">15</div>
+        <div class="heatmap-cell hm-D" title="Ref 16 — Defensible">16</div>
+        <div class="heatmap-cell hm-D" title="Ref 17 — Defensible">17</div>
+        <div class="heatmap-cell hm-D" title="Ref 18 — Defensible">18</div>
+        <div class="heatmap-cell hm-D" title="Ref 19 — Defensible">19</div>
+        <div class="heatmap-cell hm-D" title="Ref 20 — Defensible">20</div>
+        <div class="heatmap-cell hm-D" title="Ref 21 — Defensible">21</div>
+        <div class="heatmap-cell hm-D" title="Ref 22 — Defensible">22</div>
+        <div class="heatmap-cell hm-D" title="Ref 23 — Defensible">23</div>
+        <div class="heatmap-cell hm-D" title="Ref 24 — Defensible">24</div>
+        <div class="heatmap-cell hm-D" title="Ref 25 — Defensible">25</div>
+        <div class="heatmap-cell hm-M" title="Ref 26 — Moderate">26</div>
+        <div class="heatmap-cell hm-D" title="Ref 27 — Defensible">27</div>
+        <div class="heatmap-cell hm-M" title="Ref 28 — Moderate">28</div>
+        <div class="heatmap-cell hm-D" title="Ref 29 — Defensible">29</div>
+        <div class="heatmap-cell hm-D" title="Ref 30 — Defensible">30</div>
+      </div>
+      <div class="heatmap-legend">
+        <span><span class="leg-swatch" style="background:#c0392b;"></span>High (H)</span>
+        <span><span class="leg-swatch" style="background:#e67e22;"></span>Elevated (E)</span>
+        <span><span class="leg-swatch" style="background:#f1c40f;"></span>Moderate (M)</span>
+        <span><span class="leg-swatch" style="background:#27ae60;"></span>Defensible (D)</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px; background:#fdecea; border:1px solid #e8a09a; border-radius:8px; padding:12px 18px; font-size:0.87rem; color:#7a1a10;">
+    <strong style="display:block; margin-bottom:4px;">Score interpretation: 5 / 100 — Note on formula design</strong>
+    The low numeric score is a mathematical consequence of the scoring formula. With 25 defensible references (D&times;3 = 75 points deducted), 4 moderate references (M&times;2 = 8 points), and 1 high-risk reference (H&times;12 = 12 points), the score lands at 5. A theoretical list of 30 perfectly verified references would score 100 &minus; 90 = 10 — so the practical maximum for a 30-reference list is approximately 10. Editorially, 25 of 30 references are verified clean. The genuine concern is concentrated entirely in Reference 6. See Section 3 for the specific finding and COPE-aligned recommendations.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 2: FORENSIC AUDIT TABLE
+═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Section 2: Forensic Audit Table</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:36px;">#</th>
+        <th>Reference (truncated to ~80 chars)</th>
+        <th style="width:200px;">Heuristics triggered</th>
+        <th style="width:180px;">Verification sources</th>
+        <th style="width:80px;">Risk tier</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <tr>
+        <td class="refnum">1</td>
+        <td>Lawrence &amp; Lawrence (2021). <em>Breastfeeding: A guide for the medical professional.</em> Elsevier.</td>
+        <td>None</td>
+        <td class="src-list">Elsevier catalog; WorldCat</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">2</td>
+        <td>Kent (2020). Why harmonize guidelines… <em>World Nutrition</em>, 11(4), 114–124.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.26596/wn.2020114114-124</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">3</td>
+        <td>Qasem, Fenton, &amp; Friel (2015). Age of introduction of first complementary feeding… <em>BMC Pediatrics</em>, 15(1), 107.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1186/s12887-015-0409-5</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">4</td>
+        <td>UNICEF (2013). <em>Improving child nutrition: The achievable imperative for global progress</em> (pp. 1–14). UNICEF.</td>
+        <td>Grey-lit page specification unverifiable</td>
+        <td class="src-list">UNICEF.org; grey-literature plausibility check</td>
+        <td><span class="tier-badge badge-M">M</span></td>
+      </tr>
+      <tr class="finding-row">
+        <td></td>
+        <td colspan="4"><span class="finding-label">Note (Moderate):</span> The UNICEF report is verified and publicly accessible (132-page document). The cited page range "pp. 1–14" is not a formally paginated section; it likely refers to the executive summary but cannot be independently confirmed as a distinct paginated unit. Minor bibliographic imprecision — no integrity concern. Flag for editorial awareness.</td>
+      </tr>
+
+      <tr>
+        <td class="refnum">5</td>
+        <td>Victora et al. (2016). Breastfeeding in the 21st century… <em>The Lancet</em>, 387(10017), 475–490.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1016/S0140-6736(15)01024-7; PubMed PMID 26869575</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">6</td>
+        <td>Nayeri, Shariat, Dalili, Raji, &amp; Karimi (2007). The Ministry of Health IR of Iran… <em>Iranian J Pediatrics</em>, 5(2).</td>
+        <td><strong>H3: digit-swap (volume)<br>H7: shadow-paper<br>H9: temporal impossibility</strong></td>
+        <td class="src-list">PubMed (no record); NLM Catalog; Crossref (no record); Iranian J Pediatrics archive; PMC founding-date data</td>
+        <td><span class="tier-badge badge-H">H</span></td>
+      </tr>
+      <tr class="finding-row">
+        <td></td>
+        <td colspan="4">
+          <span class="finding-label">Forensic finding (HIGH — 3 heuristics):</span>
+          <strong>H9 (temporal impossibility):</strong> The <em>Iranian Journal of Pediatrics</em> began publication in 1985 (Volume 1). By 2007 the journal was publishing at approximately Volume 17. Volume 5(2) corresponds to approximately 1989–1990 — roughly 17–18 years before the cited date. A 2007 paper cannot appear in Volume 5 of this journal.
+          <strong>H3 (digit-swap/volume error):</strong> The cited volume "5" diverges from the expected 2007 volume (~17) by 12 units — consistent with a digit transposition or transcription from an incorrect source.
+          <strong>H7 (shadow-paper):</strong> No record matching this five-author citation (Nayeri F, Shariat M, Dalili H, Raji F, Karimi A, 2007, <em>Iranian Journal of Pediatrics</em>, Vol. 5) was found in PubMed, Crossref, or the publisher archive. The reference also lacks an article title — the title field contains institutional attribution text ("The Ministry of Health IR of Iran, breastfeeding office"), not an article title. Combined absence of database record, missing title, and temporally impossible volume is the forensic signature of a fabricated or severely corrupted citation.
+        </td>
+      </tr>
+
+      <tr>
+        <td class="refnum">7</td>
+        <td>Faridvand et al. (2018). Breastfeeding performance in Iranian women. <em>Int J Nursing Practice</em>, 24(4), e12659.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1111/ijn.12659</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">8</td>
+        <td>Gu &amp; Dupre (Eds.) (2021). <em>Encyclopedia of gerontology and population aging.</em> Springer.</td>
+        <td>None</td>
+        <td class="src-list">Springer catalog; grey-literature check</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">9</td>
+        <td>Brockway, Benzies, &amp; Hayden (2017). Interventions to improve breastfeeding self-efficacy… <em>J Human Lactation</em>, 33(3), 486–499.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1177/0890334417707957</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">10</td>
+        <td>Lau, Lok, &amp; Tarrant (2018). Breastfeeding duration and theory of planned behavior… <em>Maternal Child Health J</em>, 22(3), 327–342.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1007/s10995-018-2453-x</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">11</td>
+        <td>Awaliyah, Rachmawati, &amp; Rahmah (2019). Breastfeeding self-efficacy as a dominant factor… <em>BMC Nursing</em>, 18(1), 1–7.</td>
+        <td>H3 (minor): issue designation and page locator artifacts</td>
+        <td class="src-list">Crossref DOI 10.1186/s12912-019-0359-6 (corrected DOI, verified); BMC Nursing archive</td>
+        <td><span class="tier-badge badge-M">M</span></td>
+      </tr>
+      <tr class="finding-row">
+        <td></td>
+        <td colspan="4"><span class="finding-label">Note (Moderate — bibliographic):</span> The corrected DOI (10.1186/s12912-019-0359-6) resolves correctly to the Awaliyah breastfeeding self-efficacy paper in BMC Nursing 2019 — content confirmed. Minor bibliographic inaccuracies arising from the Crossref deposit: the article appears in Issue Suppl 1 (not Issue 1), and the locator is Article number 30 (not pages 1–7). These are citation-manager artifacts, not integrity concerns. The DOI correction from the original deposit (10.1186/s12912-018-0325-8, which resolved to an unrelated paper) has been applied in the source file.</td>
+      </tr>
+
+      <tr>
+        <td class="refnum">12</td>
+        <td>Kılcı &amp; Çoban (2016). Correlation between breastfeeding success… <em>Breastfeeding Medicine</em>, 11(4), 188–195.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1089/bfm.2015.0046</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">13</td>
+        <td>Santos, Kossakowski, Schwartz, Beeber, &amp; Fried (2018). Longitudinal network structure… <em>PLOS ONE</em>, 13(1), e0191675.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1371/journal.pone.0191675; PLOS ONE</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">14</td>
+        <td>Slomian et al. (2019). Consequences of maternal postpartum depression… <em>Women's Health</em>, 15, 1745506519844044.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1177/1745506519844044</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">15</td>
+        <td>Anokye et al. (2018). Prevalence of postpartum depression… <em>Annals of General Psychiatry</em>, 17, 18.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1186/s12991-018-0188-0</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">16</td>
+        <td>Sahin (2019). Relationship between breastfeeding self-efficacy and depression… <em>Int J Caring Sciences</em>, 12(2), 1–8.</td>
+        <td>None</td>
+        <td class="src-list">International Journal of Caring Sciences archive; web search</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">17</td>
+        <td>Couto, Dias, &amp; de Jesus Oliveira (2020). Benefits of exclusive breastfeeding… <em>Nursing Practice Today</em>, 7(4).</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.18502/npt.v7i4.4034</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">18</td>
+        <td>Ngo et al. (2019). Breastfeeding self-efficacy and related factors in postpartum Vietnamese women. <em>Midwifery</em>, 70, 84–91.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1016/j.midw.2018.12.014</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">19</td>
+        <td>Mercan &amp; Tari Selcuk (2021). Association between postpartum depression level… <em>PLOS ONE</em>, 16(4), e0249538.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1371/journal.pone.0249538</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">20</td>
+        <td>Dias &amp; Figueiredo (2015). Breastfeeding and depression: A systematic review. <em>J Affective Disorders</em>, 171, 142–154.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1016/j.jad.2014.09.022</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">21</td>
+        <td>Saffari, Sanaeinasab, &amp; Pakpour (2013). How to do a systematic review regarding health… <em>Iranian J Health Education</em>, 1(1), 51–61.</td>
+        <td>None</td>
+        <td class="src-list">Journal archive (journal.ihepsa.ir); web search</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">22</td>
+        <td>Direkvand Moghadam, Delpisheh, &amp; Sayehmiri (2013). Prevalence of infertility in Iran… <em>Iranian J Obstetrics</em>, 16(81), 1–7.</td>
+        <td>None</td>
+        <td class="src-list">Web search; journal archive</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">23</td>
+        <td>Zubaran &amp; Foresti (2013). Correlation between breastfeeding self-efficacy and postpartum depression… <em>Sexual &amp; Reproductive Healthcare</em>, 4(1), 9–15.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1016/j.srhc.2012.12.001</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">24</td>
+        <td>Minamida et al. (2020). Do postpartum anxiety and breastfeeding self-efficacy… predict postpartum depression? <em>Infant Mental Health J</em>, 41(5), 662–676.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1002/imhj.21866</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">25</td>
+        <td>Aslan &amp; Ege (2016). Breastfeeding self-efficacy of mothers and its relationship with depression risk. <em>J Human Sciences</em>, 13(2), 3160–3172.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.14687/jhs.v13i2.3759; j-humansciences.com</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">26</td>
+        <td>Abuchaim et al. (2016). Postpartum depression and maternal self-efficacy for breastfeeding… <em>Acta Paulista de Enfermagem</em>, 29(6), 664–670.</td>
+        <td>H4 (minor): author-name initials mismatch (Varela)</td>
+        <td class="src-list">Crossref DOI 10.1590/1982-0194201600093; Acta Paulista de Enfermagem publisher site</td>
+        <td><span class="tier-badge badge-M">M</span></td>
+      </tr>
+      <tr class="finding-row">
+        <td></td>
+        <td colspan="4"><span class="finding-label">Note (Moderate — bibliographic):</span> The DOI resolves correctly to the right paper; all metadata matches except the fourth author. The cited form "Varela, V. I. L." does not correspond to any variant of the published author name "Maite Varela" — the initials V., I., and L. are not present in the publisher record. Likely a transcription artifact. Recommend correcting to "Varela, M." per the publisher's record. Not indicative of fabrication.</td>
+      </tr>
+
+      <tr>
+        <td class="refnum">27</td>
+        <td>Vieira et al. (2018). Breastfeeding self-efficacy and postpartum depression: A cohort study. <em>Rev Latino-Am Enfermagem</em>, 26, e3035.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1590/1518-8345.2110.3035; SciELO</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">28</td>
+        <td>Palancı Ay &amp; Aktaş (2021). Effect of maternal functional status and postpartum depression on breastfeeding self-efficacy… <em>Health Care Women Int</em>, 1–15.</td>
+        <td>Missing DOI; online-first pagination cited</td>
+        <td class="src-list">Taylor &amp; Francis; Crossref (DOI: 10.1080/07399332.2021.1973008 found)</td>
+        <td><span class="tier-badge badge-M">M</span></td>
+      </tr>
+      <tr class="finding-row">
+        <td></td>
+        <td colspan="4"><span class="finding-label">Note (Moderate — bibliographic):</span> The article is verifiable. A DOI exists (10.1080/07399332.2021.1973008) but was not included in the citation. The page range "1–15" is from the online-first version; the final paginated record assigns this article to Vol. 45, Issue 2, pp. 236–250. Recommend adding the DOI and updating to final pagination. No retraction found.</td>
+      </tr>
+
+      <tr>
+        <td class="refnum">29</td>
+        <td>Borra, Iacovou, &amp; Sevilla (2015). New evidence on breastfeeding and postpartum depression… <em>Maternal Child Health J</em>, 19(4), 897–907.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1007/s10995-014-1591-z</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+      <tr>
+        <td class="refnum">30</td>
+        <td>Nishioka et al. (2011). A prospective study of the relationship between breastfeeding and postpartum depressive symptoms… <em>J Affective Disorders</em>, 133(3), 553–559.</td>
+        <td>None</td>
+        <td class="src-list">Crossref DOI 10.1016/j.jad.2011.04.027</td>
+        <td><span class="tier-badge badge-D">D</span></td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 3: RANKED SUSPICION INDEX
+═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Section 3: Ranked Suspicion Index</h2>
+
+  <div class="alert-banner">
+    <strong>One or more High-risk findings were identified.</strong>
+    Refer to the COPE alignment table in Section 6 to select the applicable investigation flowchart and escalation sequence for each finding type.
+  </div>
+
+  <h3 style="color:#c0392b; margin-top:4px;">High-Risk References (action required)</h3>
+
+  <div class="suspicion-entry">
+    <div class="suspicion-header">
+      <span class="tier-badge badge-H">H</span>
+      <strong>Reference 6</strong>
+      <span style="color:#555; font-size:0.85rem;">— Nayeri, Shariat, Dalili, Raji, &amp; Karimi (2007). <em>Iranian Journal of Pediatrics</em>, 5(2).</span>
+      <span style="margin-left:auto; font-size:0.8rem; color:#888;">3 heuristics: H3, H7, H9</span>
+    </div>
+    <div class="suspicion-body">
+      <p><strong>Forensic finding:</strong> Three independent heuristics fire simultaneously on this reference, and no database record exists for it.</p>
+      <p><strong>H9 — Temporal impossibility:</strong> The <em>Iranian Journal of Pediatrics</em> began publication in 1985 (Volume 1) and was publishing at approximately Volume 17 in 2007. Volume 5(2) corresponds to approximately 1989–1990, roughly 17–18 years before the cited date. It is chronologically impossible for a 2007 article to appear in Volume 5 of this journal. The expected volume for a 2007 issue would be approximately Volume 17.</p>
+      <p><strong>H3 — Digit-swap / volume error:</strong> The cited volume number "5" is inconsistent with the journal's 2007 publication sequence by approximately 12 units. This magnitude of discrepancy is consistent with a digit transposition (e.g., 5 substituted for 17) or transcription from an incorrect or corrupted source.</p>
+      <p><strong>H7 — Shadow-paper signature:</strong> No record matching this five-author citation — Nayeri F, Shariat M, Dalili H, Raji F, Karimi A, 2007, <em>Iranian Journal of Pediatrics</em>, Vol. 5 — was located in PubMed, Crossref, or the publisher's accessible archive. Additionally, the reference lacks an article title: the "title" field contains institutional attribution text ("The Ministry of Health IR of Iran, breastfeeding office"), which is not a bibliographic title. The combination of an absent database record, a missing article title, and a temporally impossible volume number constitutes the forensic signature of a fabricated or severely corrupted citation.</p>
+      <div class="cope-box">
+        <strong>COPE-aligned recommended actions (H tier — suspected fabricated data):</strong>
+        <p style="margin-top:6px;"><strong>Step 1 — Author query (immediate):</strong> Contact the corresponding author (Fatemeh Zahra Karimi) requesting the original source document for Reference 6. Request: (a) the full article title, (b) confirmation of the correct volume number and year, and (c) a library access record, DOI resolution screenshot, or physical copy of the article. Author query is always the first step.</p>
+        <p style="margin-top:8px;"><strong>Step 2 — Editorial investigation:</strong> If the author cannot provide documentation that resolves the temporal impossibility and the missing-record findings, initiate an editorial investigation per the COPE Flowchart <em>"Suspected Fabricated Data in a Submitted Manuscript"</em> (or <em>"Suspected Fabricated Data in a Published Article"</em> as applicable to this article's current status). Do not rely solely on author-supplied documentation for an H-tier finding.</p>
+        <p style="margin-top:8px;"><strong>Step 3 — Publisher or institution notification:</strong> If investigation confirms fabrication or irresolvable corruption, notify the publisher. For a published article, consider an expression of concern pending investigation, or a correction if the correct source document can be identified and verified.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="color:#d07000; margin-top:20px;">Elevated-Risk References</h3>
+  <p style="font-size:0.87rem; color:#666; margin-bottom:16px;">No Elevated-risk references were identified in this audit.</p>
+
+  <h3 style="color:#555; margin-top:4px;">Moderate-Risk References (editorial awareness; low priority)</h3>
+
+  <div class="suspicion-entry">
+    <div class="suspicion-header">
+      <span class="tier-badge badge-M">M</span>
+      <strong>Reference 4</strong>
+      <span style="color:#555; font-size:0.85rem;">— UNICEF (2013). <em>Improving child nutrition: The achievable imperative for global progress</em> (pp. 1–14). UNICEF.</span>
+    </div>
+    <div class="suspicion-body">
+      <p>Grey-literature report verified and publicly accessible. The cited page range "pp. 1–14" cannot be independently confirmed as a formally paginated section — it likely refers to the executive summary. Recommend specifying the chapter or section title if citing a specific portion of the report.</p>
+    </div>
+  </div>
+
+  <div class="suspicion-entry">
+    <div class="suspicion-header">
+      <span class="tier-badge badge-M">M</span>
+      <strong>Reference 11</strong>
+      <span style="color:#555; font-size:0.85rem;">— Awaliyah, Rachmawati, &amp; Rahmah (2019). <em>BMC Nursing</em>, 18(1), 1–7.</span>
+    </div>
+    <div class="suspicion-body">
+      <p>The corrected DOI resolves to the correct paper. Bibliographic artifacts from the Crossref deposit: the issue should be "Suppl 1" not "(1)," and the article locator is Article 30, not pages "1–7." These are citation-manager artifacts, not integrity concerns. Recommend correcting the citation to match the publisher record.</p>
+    </div>
+  </div>
+
+  <div class="suspicion-entry">
+    <div class="suspicion-header">
+      <span class="tier-badge badge-M">M</span>
+      <strong>Reference 26</strong>
+      <span style="color:#555; font-size:0.85rem;">— Abuchaim et al. (2016). <em>Acta Paulista de Enfermagem</em>, 29(6), 664–670.</span>
+    </div>
+    <div class="suspicion-body">
+      <p>DOI resolves correctly; all metadata verified except the fourth author. "Varela, V. I. L." in the citation does not correspond to the published author name "Maite Varela." The initials V., I., L. have no match in the publisher record. Likely a transcription artifact. Recommend correcting to "Varela, M."</p>
+    </div>
+  </div>
+
+  <div class="suspicion-entry">
+    <div class="suspicion-header">
+      <span class="tier-badge badge-M">M</span>
+      <strong>Reference 28</strong>
+      <span style="color:#555; font-size:0.85rem;">— Palancı Ay &amp; Aktaş (2021). <em>Health Care for Women International</em>, 1–15.</span>
+    </div>
+    <div class="suspicion-body">
+      <p>Article verified. DOI (10.1080/07399332.2021.1973008) exists but was not cited. Page range "1–15" is online-first pagination; final paginated record is Vol. 45, Issue 2, pp. 236–250. Recommend adding the DOI and updating pagination to the final published version.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 4: CLEANED APA REFERENCE LIST
+═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Section 4: Cleaned APA 7th Edition Reference List</h2>
+  <p style="font-size:0.85rem; color:#555; margin-bottom:20px;">APA 7th edition format applied throughout: sentence-case article titles, DOI in https://doi.org/ format, article-number locators where applicable. Corrections to specific citations are annotated in brackets. Reference 6 is retained in submitted form with forensic flag appended.</p>
+
+  <div class="apa-list">
+
+    <div class="apa-entry">
+      Lawrence, R. A., &amp; Lawrence, R. M. (2021). <em>Breastfeeding: A guide for the medical profession</em> (9th ed.). Elsevier Health Sciences.
+    </div>
+
+    <div class="apa-entry">
+      Kent, G. (2020). Why harmonize the guidelines for infant and young child feeding: Book review. <em>World Nutrition</em>, <em>11</em>(4), 114–124. https://doi.org/10.26596/wn.2020114114-124
+    </div>
+
+    <div class="apa-entry">
+      Qasem, W., Fenton, T., &amp; Friel, J. (2015). Age of introduction of first complementary feeding for infants: A systematic review. <em>BMC Pediatrics</em>, <em>15</em>(1), Article 107. https://doi.org/10.1186/s12887-015-0409-5
+    </div>
+
+    <div class="apa-entry">
+      UNICEF. (2013). <em>Improving child nutrition: The achievable imperative for global progress.</em> UNICEF. [Note: page range "pp. 1–14" not verifiable as a formally paginated section; recommend specifying chapter or section title.]
+    </div>
+
+    <div class="apa-entry">
+      Victora, C. G., Bahl, R., Barros, A. J. D., França, G. V. A., Horton, S., Krasevec, J., Murch, S., Sankar, M. J., Walker, N., &amp; Rollins, N. C. (2016). Breastfeeding in the 21st century: Epidemiology, mechanisms, and lifelong effect. <em>The Lancet</em>, <em>387</em>(10017), 475–490. https://doi.org/10.1016/S0140-6736(15)01024-7
+    </div>
+
+    <div class="apa-entry">
+      <div class="flagged-ref">
+        Nayeri, F., Shariat, M., Dalili, H., Raji, F., &amp; Karimi, A. (2007). [Title not determinable — title field contains institutional attribution text]. <em>Iranian Journal of Pediatrics</em>, <em>5</em>(2). <span class="flagged-tag">[FLAGGED — see forensic audit: H3 digit-swap (volume 5 impossible for 2007; expected ~volume 17), H7 shadow-paper (no record in PubMed, Crossref, or publisher archive), H9 temporal impossibility. Author query and editorial investigation required before publication.]</span>
+      </div>
+    </div>
+
+    <div class="apa-entry">
+      Faridvand, F., Mirghafourvand, M., Mohammad-Alizadeh-Charandabi, S., &amp; Malakouti, J. (2018). Breastfeeding performance in Iranian women. <em>International Journal of Nursing Practice</em>, <em>24</em>(4), Article e12659. https://doi.org/10.1111/ijn.12659
+    </div>
+
+    <div class="apa-entry">
+      Gu, D., &amp; Dupre, M. E. (Eds.). (2021). <em>Encyclopedia of gerontology and population aging.</em> Springer International Publishing.
+    </div>
+
+    <div class="apa-entry">
+      Brockway, M., Benzies, K., &amp; Hayden, K. A. (2017). Interventions to improve breastfeeding self-efficacy and resultant breastfeeding rates: A systematic review and meta-analysis. <em>Journal of Human Lactation</em>, <em>33</em>(3), 486–499. https://doi.org/10.1177/0890334417707957
+    </div>
+
+    <div class="apa-entry">
+      Lau, C. Y. K., Lok, K. Y. W., &amp; Tarrant, M. (2018). Breastfeeding duration and the theory of planned behavior and breastfeeding self-efficacy framework: A systematic review of observational studies. <em>Maternal and Child Health Journal</em>, <em>22</em>(3), 327–342. https://doi.org/10.1007/s10995-018-2453-x
+    </div>
+
+    <div class="apa-entry">
+      Awaliyah, S. N., Rachmawati, I. N., &amp; Rahmah, H. (2019). Breastfeeding self-efficacy as a dominant factor affecting maternal breastfeeding satisfaction. <em>BMC Nursing</em>, <em>18</em>(Suppl 1), Article 30. https://doi.org/10.1186/s12912-019-0359-6 [Corrected: issue "(1)" → "(Suppl 1)"; page "1–7" → Article 30 per publisher record.]
+    </div>
+
+    <div class="apa-entry">
+      Kılcı, H., &amp; Çoban, A. (2016). Correlation between breastfeeding success in early postpartum period and perception of self-efficacy in breastfeeding and breast problems. <em>Breastfeeding Medicine</em>, <em>11</em>(4), 188–195. https://doi.org/10.1089/bfm.2015.0046
+    </div>
+
+    <div class="apa-entry">
+      Santos, H. P., Kossakowski, J. J., Schwartz, T. A., Beeber, L., &amp; Fried, E. I. (2018). Longitudinal network structure of depression symptoms and self-efficacy in low-income mothers. <em>PLOS ONE</em>, <em>13</em>(1), Article e0191675. https://doi.org/10.1371/journal.pone.0191675
+    </div>
+
+    <div class="apa-entry">
+      Slomian, J., Honvo, G., Emonts, P., Reginster, J.-Y., &amp; Bruyère, O. (2019). Consequences of maternal postpartum depression: A systematic review of maternal and infant outcomes. <em>Women's Health</em>, <em>15</em>, Article 1745506519844044. https://doi.org/10.1177/1745506519844044
+    </div>
+
+    <div class="apa-entry">
+      Anokye, R., Acheampong, E., Budu-Ainooson, A., Obeng, E. I., &amp; Akwasi, A. G. (2018). Prevalence of postpartum depression and interventions utilized for its management. <em>Annals of General Psychiatry</em>, <em>17</em>, Article 18. https://doi.org/10.1186/s12991-018-0188-0
+    </div>
+
+    <div class="apa-entry">
+      Sahin, B. M. (2019). Relationship between breastfeeding self-efficacy and depression in the early postpartum period in Turkey. <em>International Journal of Caring Sciences</em>, <em>12</em>(2), 1–8.
+    </div>
+
+    <div class="apa-entry">
+      Couto, G. R., Dias, V., &amp; de Jesus Oliveira, I. (2020). Benefits of exclusive breastfeeding: An integrative review. <em>Nursing Practice Today</em>, <em>7</em>(4). https://doi.org/10.18502/npt.v7i4.4034
+    </div>
+
+    <div class="apa-entry">
+      Ngo, L. T. H., Chou, H.-F., Gau, M.-L., &amp; Liu, C.-Y. (2019). Breastfeeding self-efficacy and related factors in postpartum Vietnamese women. <em>Midwifery</em>, <em>70</em>, 84–91. https://doi.org/10.1016/j.midw.2018.12.014
+    </div>
+
+    <div class="apa-entry">
+      Mercan, Y., &amp; Tari Selcuk, K. (2021). Association between postpartum depression level, social support level and breastfeeding attitude and breastfeeding self-efficacy. <em>PLOS ONE</em>, <em>16</em>(4), Article e0249538. https://doi.org/10.1371/journal.pone.0249538
+    </div>
+
+    <div class="apa-entry">
+      Dias, C. C., &amp; Figueiredo, B. (2015). Breastfeeding and depression: A systematic review of the literature. <em>Journal of Affective Disorders</em>, <em>171</em>, 142–154. https://doi.org/10.1016/j.jad.2014.09.022
+    </div>
+
+    <div class="apa-entry">
+      Saffari, M., Sanaeinasab, H., &amp; Pakpour, A. H. (2013). How to do a systematic review regarding health: A narrative review. <em>Iranian Journal of Health Education and Health Promotion</em>, <em>1</em>(1), 51–61.
+    </div>
+
+    <div class="apa-entry">
+      Direkvand Moghadam, A., Delpisheh, A., &amp; Sayehmiri, K. (2013). Prevalence of infertility in Iran, a systematic review. <em>Iranian Journal of Obstetrics, Gynecology and Infertility</em>, <em>16</em>(81), 1–7.
+    </div>
+
+    <div class="apa-entry">
+      Zubaran, C., &amp; Foresti, K. (2013). Correlation between breastfeeding self-efficacy and maternal postpartum depression in southern Brazil. <em>Sexual &amp; Reproductive Healthcare</em>, <em>4</em>(1), 9–15. https://doi.org/10.1016/j.srhc.2012.12.001
+    </div>
+
+    <div class="apa-entry">
+      Minamida, T., Iseki, A., Sakai, H., Imura, M., Okano, T., &amp; Tanii, H. (2020). Do postpartum anxiety and breastfeeding self-efficacy and bonding at early postpartum predict postpartum depression and the breastfeeding method? <em>Infant Mental Health Journal</em>, <em>41</em>(5), 662–676. https://doi.org/10.1002/imhj.21866
+    </div>
+
+    <div class="apa-entry">
+      Aslan, Y., &amp; Ege, E. (2016). Breastfeeding self-efficacy of mothers and its relationship with depression risk. <em>Journal of Human Sciences</em>, <em>13</em>(2), 3160–3172. https://doi.org/10.14687/jhs.v13i2.3759
+    </div>
+
+    <div class="apa-entry">
+      Abuchaim, E. D. S. V., Caldeira, N. T., Lucca, M. M. D., Varela, M., &amp; Silva, I. A. (2016). Postpartum depression and maternal self-efficacy for breastfeeding: Prevalence and association. <em>Acta Paulista de Enfermagem</em>, <em>29</em>(6), 664–670. https://doi.org/10.1590/1982-0194201600093 [Corrected: "Varela, V. I. L." → "Varela, M." per publisher record.]
+    </div>
+
+    <div class="apa-entry">
+      Vieira, E. D. S., Caldeira, N. T., Eugênio, D. S., de Lucca, M. M., &amp; Silva, I. A. (2018). Breastfeeding self-efficacy and postpartum depression: A cohort study. <em>Revista Latino-Americana de Enfermagem</em>, <em>26</em>, Article e3035. https://doi.org/10.1590/1518-8345.2110.3035
+    </div>
+
+    <div class="apa-entry">
+      Palancı Ay, Ö., &amp; Aktaş, S. (2021). Effect of maternal functional status and postpartum depression on breastfeeding self-efficacy of mothers: A cross-sectional study. <em>Health Care for Women International</em>, <em>45</em>(2), 236–250. https://doi.org/10.1080/07399332.2021.1973008 [DOI added; pagination updated from online-first "1–15" to final paginated record per publisher.]
+    </div>
+
+    <div class="apa-entry">
+      Borra, C., Iacovou, M., &amp; Sevilla, A. (2015). New evidence on breastfeeding and postpartum depression: The importance of understanding women's intentions. <em>Maternal and Child Health Journal</em>, <em>19</em>(4), 897–907. https://doi.org/10.1007/s10995-014-1591-z
+    </div>
+
+    <div class="apa-entry">
+      Nishioka, E., Haruna, M., Ota, E., Matsuzaki, M., Murayama, R., Yoshimura, K., &amp; Murashima, S. (2011). A prospective study of the relationship between breastfeeding and postpartum depressive symptoms appearing at 1–5 months after delivery. <em>Journal of Affective Disorders</em>, <em>133</em>(3), 553–559. https://doi.org/10.1016/j.jad.2011.04.027
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 5: PRISMA-STYLE FLOW DIAGRAM
+═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Section 5: Verification Pipeline Flow (Mode A)</h2>
+  <div class="flow-wrap">
+    <div class="flow-diagram">
+
+      <div class="flow-box">30 references submitted<br><small style="font-weight:400;">Mode A — reference list only; no manuscript body</small></div>
+      <div class="flow-arrow">&#8595;</div>
+
+      <div class="flow-box">Stage 1: Ingestion &amp; normalization<br><small style="font-weight:400;">20 DOI-bearing &nbsp;|&nbsp; 6 grey-literature books/reports &nbsp;|&nbsp; 4 no-DOI journal articles</small></div>
+      <div class="flow-arrow">&#8595;</div>
+
+      <div class="flow-split">
+        <div class="flow-split-branch">
+          <div class="flow-split-label">DOI-bearing (20)</div>
+          <div class="flow-box" style="min-width:190px; font-size:0.82rem;">Stage 2: Live verification<br>Crossref API &bull; PubMed<br>Publisher sites &bull; Retraction Watch</div>
+          <div class="flow-connector"></div>
+        </div>
+        <div class="flow-split-branch">
+          <div class="flow-split-label">Grey literature / no-DOI (10)</div>
+          <div class="flow-box" style="min-width:190px; font-size:0.82rem;">Stage 2: Source verification<br>Publisher / org. sites<br>URL plausibility &bull; NLM Catalog</div>
+          <div class="flow-connector"></div>
+        </div>
+      </div>
+
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-box">Stage 3: Forensic heuristic battery<br><small style="font-weight:400;">8 heuristics applied — H1, H2, H3, H4, H5, H6, H7, H9 &nbsp;&bull;&nbsp; H8 not applicable in Mode A</small></div>
+      <div class="flow-arrow">&#8595;</div>
+      <div class="flow-box">Stage 4: Risk classification</div>
+      <div class="flow-arrow">&#8595;</div>
+
+      <div class="flow-tier-row">
+        <div class="flow-tier flow-h">H: 1<br><small>Ref 6</small></div>
+        <div class="flow-tier flow-e">E: 0<br><small>&mdash;</small></div>
+        <div class="flow-tier flow-m">M: 4<br><small>Refs 4, 11, 26, 28</small></div>
+        <div class="flow-tier flow-d">D: 25<br><small>Refs 1–3, 5, 7–10, 12–25, 27, 29–30</small></div>
+      </div>
+
+      <div class="flow-arrow" style="margin-top:14px;">&#8595;</div>
+      <div class="flow-box">Score = 100 &minus; (1&times;12) &minus; (0&times;5) &minus; (4&times;2) &minus; (25&times;3) = <strong>5</strong></div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION 6: FORENSIC APPENDIX
+═══════════════════════════════════════════════════════ -->
+<div class="section">
+  <h2>Section 6: Forensic Appendix</h2>
+
+  <div class="appendix-section">
+    <h3>Methodology</h3>
+    <p>This audit was conducted using the Forensic Reference-Integrity Auditor v5 against the 30-reference list of Ahmadinezhad et al. (2024), operated in Mode A (reference list only; no manuscript body text was provided for analysis). Each reference was subjected to live verification against Crossref (DOI resolution and metadata matching), PubMed and PMC (biomedical citation records and author verification), Retraction Watch (retraction notices and expressions of concern), publisher sites (direct archive verification of title, author list, volume, issue, and page data), and the NLM Catalog (journal founding dates and ISSN records). Eight heuristics were applied to every reference: H1 through H7, and H9. Heuristic 8 (sneaked reference) is unavailable in Mode A and was omitted. Risk tier assignments follow the Stage 4 rubric: High (H), Elevated (E), Moderate (M), and Defensible (D). No manuscript submission date was provided in the input; the H9 post-submission-date sub-check was therefore not applied. The H9 volume/issue plausibility sub-check was applied to all references with stated volume and issue numbers.</p>
+  </div>
+
+  <div class="appendix-section">
+    <h3>Heuristic Definitions</h3>
+    <table class="heuristic-table">
+      <thead>
+        <tr>
+          <th style="width:50px;">Code</th>
+          <th style="width:170px;">Name</th>
+          <th>One-sentence definition</th>
+          <th style="width:110px;">Triggered in this audit</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>H1</td>
+          <td>DOI resolution failure</td>
+          <td>DOI does not resolve, returns a 404 or redirect loop, or lands on a materially different paper.</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>H2</td>
+          <td>Homoglyph substitution</td>
+          <td>Non-ASCII Unicode lookalike characters are substituted for Latin characters in author names, journal names, or titles to defeat string matching.</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>H3</td>
+          <td>Digit-swap analysis</td>
+          <td>Transposed or altered volume, issue, page, year, or DOI digit sequences make a real citation unfindable by database lookup.</td>
+          <td>Yes — Refs 6 (volume), 11 (issue, minor)</td>
+        </tr>
+        <tr>
+          <td>H4</td>
+          <td>Author-shifting</td>
+          <td>Rearranged, added, removed, or substituted authors compared to the actual publication record.</td>
+          <td>Yes — Ref 26 (minor initials mismatch)</td>
+        </tr>
+        <tr>
+          <td>H5</td>
+          <td>Double-Real trap</td>
+          <td>A valid DOI resolves to a legitimate paper, but the cited metadata (title, authors, journal, year) describes a completely different real paper.</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>H6</td>
+          <td>Journal mutation</td>
+          <td>Slightly altered journal title points to a nonexistent, predatory, or different legitimate journal.</td>
+          <td>No</td>
+        </tr>
+        <tr>
+          <td>H7</td>
+          <td>Shadow-paper signature</td>
+          <td>A fully fabricated citation with plausible metadata matches no known publication in any searched database.</td>
+          <td>Yes — Ref 6</td>
+        </tr>
+        <tr>
+          <td>H8</td>
+          <td>Sneaked reference</td>
+          <td>A reference present in the list is never cited in the manuscript body — padding designed to inflate the apparent evidence base. <em>(Mode A: not applicable.)</em></td>
+          <td>N/A (Mode A)</td>
+        </tr>
+        <tr>
+          <td>H9</td>
+          <td>Temporal impossibility</td>
+          <td>The cited date is chronologically impossible given the journal's founding date, the volume/issue history for the stated year, or the manuscript's submission timeline.</td>
+          <td>Yes — Ref 6</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="appendix-section">
+    <h3>Scoring Explanation</h3>
+    <div class="score-formula">
+      Score = 100 &minus; (H &times; 12) &minus; (E &times; 5) &minus; (M &times; 2) &minus; (D &times; 3)<br>
+      Score = 100 &minus; (1 &times; 12) &minus; (0 &times; 5) &minus; (4 &times; 2) &minus; (25 &times; 3)<br>
+      Score = 100 &minus; 12 &minus; 0 &minus; 8 &minus; 75 = <strong>5</strong>
+    </div>
+    <p>The scoring formula applies a per-reference penalty to every tier, including Defensible references (D&times;3 per reference). This reflects the cost of residual editorial uncertainty — even independently verified citations carry a 3-point penalty because verification has inherent limits (database coverage gaps, grey-literature opacity, temporal coverage of founding-date data). A theoretical list of 30 perfectly verified references would score 100 &minus; (30 &times; 3) = 10. The practical editorial maximum for a 30-reference list is therefore approximately 10.</p>
+    <p>For this list, the score of 5 should be read in context: 25 of 30 references are independently verified against Crossref, PubMed, and publisher records with no material discrepancies. The dominant score penalty is the D&times;3 term (75 points) from those 25 clean references. The single High-risk finding contributes 12 points; the four Moderate findings contribute 8 points. Editors should use the heatmap and suspicion index to identify the specific finding that requires action, rather than interpreting the raw score as an indicator of systemic integrity failure.</p>
+    <p>A score below 70 warrants escalation. A score below 50 indicates systemic integrity concerns. This list scores 5, which is below both thresholds — however, the forensic finding is isolated to one reference (Ref 6), and the score is mathematically bounded near zero for any 30-reference list regardless of quality.</p>
+  </div>
+
+  <div class="appendix-section">
+    <h3>Audit Limitations</h3>
+    <ul class="limitation-list">
+      <li>Grey literature without URLs (Refs 4, 8, 16, 21, 22) cannot be fully independently verified beyond source-organization plausibility and title confirmation. Source organizations and general publication details were confirmed through web search.</li>
+      <li>Shadow-paper detection (H7) depends on database coverage. Very recent fabrications and articles from small or non-English-language journals may not be fully indexed in Crossref or PubMed. Coverage of historical Iranian journal archives in particular is incomplete, which affects the confidence interval on the Ref 6 finding.</li>
+      <li>Sneaked-reference detection (H8) is not available in Mode A. A full manuscript submission would be required to check for orphan references.</li>
+      <li>Temporal impossibility checks (H9) depend on journal founding-date data in Crossref and the NLM Catalog. Coverage may be incomplete for smaller, newer, or recently renamed journals. For Ref 6, the founding date and volume sequence of the <em>Iranian Journal of Pediatrics</em> were confirmed through multiple independent sources including PMC archive records.</li>
+      <li>Homoglyph detection (H2) in this audit was performed by visual and character-sequence inspection. Systematic computational homoglyph analysis was not applied; very subtle lookalike substitutions may not have been identified.</li>
+      <li>This audit is a forensic tool, not a definitive determination of research fraud. All findings, including the High-tier finding on Reference 6, should inform editorial judgment and trigger the appropriate COPE investigation procedure — they do not constitute proof of intent to deceive.</li>
+    </ul>
+  </div>
+
+  <div class="appendix-section">
+    <h3>COPE Alignment</h3>
+    <div class="alert-banner">
+      <strong>One or more High-risk findings were identified.</strong>
+      Refer to the table below to select the applicable COPE investigation flowchart and escalation sequence for each finding type.
+    </div>
+    <table class="cope-table">
+      <thead>
+        <tr>
+          <th>Finding type</th>
+          <th>Applicable COPE flowchart</th>
+          <th>Escalation sequence</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Fabricated or falsified data suspected — submitted manuscript (H1, H3, H5, H7, H9 — <strong>applies to Ref 6</strong>)</td>
+          <td>Suspected Fabricated Data in a Submitted Manuscript</td>
+          <td>Author query &rarr; editorial investigation &rarr; reject and notify publisher if confirmed</td>
+        </tr>
+        <tr>
+          <td>Fabricated or falsified data suspected — published article (H1, H3, H5, H7, H9 — <strong>applies to Ref 6 if already published</strong>)</td>
+          <td>Suspected Fabricated Data in a Published Article</td>
+          <td>Author query &rarr; editorial/publisher investigation &rarr; correction, expression of concern, or retraction</td>
+        </tr>
+        <tr>
+          <td>Author-list discrepancy (H4 minor — Ref 26, Varela initials mismatch)</td>
+          <td>Authorship Disputes (if credit dispute suspected); or simple correction if transcription artifact confirmed</td>
+          <td>Author query requesting confirmation of published author name &rarr; correction to publisher record if confirmed</td>
+        </tr>
+        <tr>
+          <td>Duplicate or redundant publication signals</td>
+          <td>Suspected Redundant (Duplicate) Publication</td>
+          <td>Author query &rarr; editorial investigation &rarr; publisher notification</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:22px;">Escalation Levels</h3>
+    <ol class="escalation-list">
+      <li><strong>Author query</strong> — Contact the corresponding author for documentation. For Reference 6, request the original source document (physical copy, library access record, or DOI resolution screenshot) and ask the author to confirm the correct article title, volume number, and year. Author query is always the first step for all H- and E-tier findings.</li>
+      <li><strong>Editorial investigation</strong> — Convene an independent editorial review. Do not rely solely on author-supplied documentation for confirmed H-tier findings. For Reference 6, if the author cannot resolve the temporal impossibility and the absent database record, initiate investigation per the applicable COPE flowchart.</li>
+      <li><strong>Publisher or institution notification</strong> — For confirmed fabrication, notify the publisher and/or the author's institution per COPE guidelines. For a published article, consider a correction, expression of concern, or retraction as appropriate to the severity of the confirmed finding.</li>
+    </ol>
+
+    <p style="margin-top:16px; font-size:0.84rem; color:#555;"><strong>COPE methodology reference:</strong> This audit's recommendations are structured in accordance with COPE's Core Practices and the investigation flowcharts available at <a href="https://publicationethics.org/guidance/Flowcharts" target="_blank">publicationethics.org/guidance/Flowcharts</a>. COPE guidelines represent consensus best practice in academic publishing; they are not legally binding but are widely adopted by publishers and institutions as the standard for research integrity response. The COPE flowcharts cited in this report are the versions current as of the audit date (2026-06-19).</p>
+  </div>
+
+  <div style="margin-top:28px; padding-top:16px; border-top:1px solid #e0e4f0; font-size:0.78rem; color:#999; text-align:center;">
+    Forensic Reference-Integrity Auditor v5 &nbsp;&bull;&nbsp; Audit date: 2026-06-19 &nbsp;&bull;&nbsp; Article DOI: https://doi.org/10.1186/s12884-024-06465-4 &nbsp;&bull;&nbsp; Mode A (reference list only) &nbsp;&bull;&nbsp; 30 references audited &nbsp;&bull;&nbsp; Score: 5/100
+  </div>
+</div>
+
+</div><!-- /container -->
+</body>
+</html>

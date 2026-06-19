@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forensic Reference-Integrity Audit — Patriksson et al. (2024)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Georgia, 'Times New Roman', serif; background: #f8f8f6; color: #222; line-height: 1.6; }
+  .page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  h1 { font-size: 1.7rem; color: #1a1a2e; border-bottom: 3px solid #1a1a2e; padding-bottom: 10px; margin-bottom: 6px; }
+  h2 { font-size: 1.25rem; color: #1a1a2e; border-bottom: 2px solid #c8c8c8; padding-bottom: 6px; margin: 36px 0 16px; }
+  h3 { font-size: 1.05rem; color: #2c2c5e; margin: 22px 0 10px; }
+  .meta { font-size: 0.85rem; color: #666; margin-bottom: 28px; }
+  .meta span { margin-right: 20px; }
+  /* Gauge */
+  .gauge-wrap { display: flex; flex-direction: column; align-items: center; margin: 10px 0 24px; }
+  .gauge-score { font-size: 2.8rem; font-weight: bold; color: #f1c40f; margin-top: -8px; }
+  .gauge-label { font-size: 0.9rem; color: #555; margin-top: 2px; }
+  /* Stat cards */
+  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 18px 0 28px; }
+  .stat-card { flex: 1; min-width: 140px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 16px 12px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .stat-card .num { font-size: 2.2rem; font-weight: bold; }
+  .stat-card .lbl { font-size: 0.78rem; color: #666; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .stat-high .num { color: #c0392b; }
+  .stat-elevated .num { color: #e67e22; }
+  .stat-moderate .num { color: #f39c12; }
+  .stat-defensible .num { color: #27ae60; }
+  /* Heatmap */
+  .heatmap { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 32px; }
+  .hm-cell { width: 36px; height: 36px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: bold; color: #fff; cursor: default; }
+  .hm-H { background: #c0392b; }
+  .hm-E { background: #e67e22; }
+  .hm-M { background: #f39c12; }
+  .hm-D { background: #27ae60; }
+  /* Table */
+  .audit-table { width: 100%; border-collapse: collapse; font-size: 0.86rem; margin-bottom: 16px; }
+  .audit-table th { background: #1a1a2e; color: #fff; padding: 10px 8px; text-align: left; font-weight: 600; }
+  .audit-table td { padding: 9px 8px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+  .audit-table tr:nth-child(even) td { background: #f9f9f9; }
+  .badge { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 0.78rem; font-weight: bold; color: #fff; }
+  .badge-H { background: #c0392b; }
+  .badge-E { background: #e67e22; }
+  .badge-M { background: #f39c12; }
+  .badge-D { background: #27ae60; }
+  .finding-note { background: #fff8f0; border-left: 3px solid #e67e22; padding: 6px 10px; margin-top: 6px; font-size: 0.82rem; color: #5a3000; font-style: italic; }
+  .finding-note-M { background: #fffbf0; border-left: 3px solid #f39c12; padding: 6px 10px; margin-top: 6px; font-size: 0.82rem; color: #5a4000; font-style: italic; }
+  /* Suspicion index */
+  .si-entry { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 14px 16px; margin-bottom: 12px; }
+  .si-entry h4 { font-size: 0.95rem; color: #1a1a2e; margin-bottom: 6px; }
+  .si-entry .finding { font-size: 0.85rem; margin-bottom: 6px; }
+  .si-entry .action { font-size: 0.83rem; background: #eef4ff; border-left: 3px solid #2c5282; padding: 6px 10px; margin-top: 6px; color: #1a365d; }
+  /* Reference list */
+  .ref-list { font-size: 0.85rem; }
+  .ref-list p { margin-bottom: 10px; padding-left: 2em; text-indent: -2em; }
+  /* Flow diagram */
+  .flow-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 16px 0; }
+  .flow-box { background: #fff; border: 2px solid #2c5282; border-radius: 6px; padding: 10px 20px; text-align: center; font-size: 0.88rem; font-weight: 600; color: #1a1a2e; min-width: 260px; }
+  .flow-arrow { font-size: 1.4rem; color: #2c5282; line-height: 1.2; }
+  .flow-row { display: flex; gap: 24px; align-items: flex-start; justify-content: center; }
+  .flow-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .flow-box-sm { background: #eef4ff; border: 1.5px solid #4a6fa5; border-radius: 5px; padding: 8px 14px; text-align: center; font-size: 0.83rem; min-width: 160px; }
+  .flow-results { display: flex; gap: 12px; margin-top: 0; }
+  .flow-tier { border-radius: 5px; padding: 8px 14px; text-align: center; font-size: 0.83rem; font-weight: bold; color: #fff; min-width: 70px; }
+  /* Appendix tables */
+  .app-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; margin-bottom: 16px; }
+  .app-table th { background: #2c3e50; color: #fff; padding: 8px 10px; text-align: left; }
+  .app-table td { padding: 7px 10px; border-bottom: 1px solid #ddd; vertical-align: top; }
+  .app-table tr:nth-child(even) td { background: #f5f5f5; }
+  p.body { margin: 10px 0; font-size: 0.92rem; }
+  .notice { background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; padding: 12px 16px; margin: 14px 0; font-size: 0.88rem; }
+  .section-divider { border: none; border-top: 2px solid #e0e0e0; margin: 40px 0 0; }
+  ul.body-list { font-size: 0.88rem; margin-left: 1.5em; line-height: 1.8; }
+  ol.body-list { font-size: 0.88rem; margin-left: 1.5em; line-height: 1.8; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<h1>Forensic Reference-Integrity Audit Report</h1>
+<div class="meta">
+  <span><strong>Article:</strong> Patriksson, K., Andersson, O., Thies-Lagergren, L., &amp; Rönnerhag, M. (2024). Neonatal healthcare professionals' experiences of intact cord resuscitation in the mother's bed: An interview study. <em>BMC Pregnancy and Childbirth</em>, 24(1), 362. https://doi.org/10.1186/s12884-024-06558-0</span><br><br>
+  <span><strong>Audit mode:</strong> Mode A — Reference list only (26 references)</span> &nbsp;
+  <span><strong>Auditor version:</strong> Forensic Reference-Integrity Auditor v5</span> &nbsp;
+  <span><strong>Audit date:</strong> 2026-06-19</span><br>
+  <span><strong>Context:</strong> Third-pass false-positive calibration run against a published, peer-reviewed BMC article. Known Crossref deposit artifacts documented in source file header.</span><br>
+  <span><strong>Heuristic 8 (sneaked reference):</strong> Not applicable — Mode A</span>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: EXECUTIVE DASHBOARD                                -->
+<!-- ============================================================ -->
+<h2>Section 1: Executive Dashboard</h2>
+
+<!-- Confidence Gauge -->
+<div class="gauge-wrap">
+<svg width="320" height="175" viewBox="0 0 320 175" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background track -->
+  <path d="M 30 145 A 130 130 0 0 1 290 145" fill="none" stroke="#e8e8e8" stroke-width="26" stroke-linecap="round"/>
+  <!-- Colored zones (background) -->
+  <!-- Red 0-50 (left half of arc = 0 to 90 degrees, endpoint at top center) -->
+  <path d="M 30 145 A 130 130 0 0 1 160 15" fill="none" stroke="#e74c3c" stroke-width="24" opacity="0.3" stroke-linecap="round"/>
+  <!-- Orange 50-70 (90 to 126 degrees) -->
+  <path d="M 160 15 A 130 130 0 0 1 231 55" fill="none" stroke="#e67e22" stroke-width="24" opacity="0.3" stroke-linecap="round"/>
+  <!-- Amber/Yellow 70-85 (126 to 153 degrees) -->
+  <path d="M 231 55 A 130 130 0 0 1 274 118" fill="none" stroke="#f1c40f" stroke-width="24" opacity="0.35" stroke-linecap="round"/>
+  <!-- Green 85-100 (153 to 180 degrees) -->
+  <path d="M 274 118 A 130 130 0 0 1 290 145" fill="none" stroke="#27ae60" stroke-width="24" opacity="0.3" stroke-linecap="round"/>
+  <!--
+    Score = 76. Needle angle: 76% of 180 degrees from left = 136.8 degrees.
+    x = 160 + 130 * cos(180 - 136.8) = 160 + 130 * cos(43.2 deg) = 160 + 94.7 = 254.7
+    y = 145 - 130 * sin(43.2 deg) = 145 - 89.0 = 56.0
+    Score arc: draw from start (30,145) to (254.7, 56.0)  -- this is > 90 deg so large-arc-flag=0 still (it's 136.8 of 180)
+    Actually 136.8/180 = 0.76, arc goes 136.8 degrees. Since 136.8 > 90, large-arc-flag should be 1?
+    No -- we use 0 because we're going clockwise from (30,145) which is the leftmost point of the semicircle.
+    Going 136.8 degrees clockwise out of 180 total. The flag is 0 when the arc spans < 180 degrees (which it does at 136.8).
+    End point calculation:
+    The full semicircle goes from angle 180° to 0° (measuring standard math angles from positive x-axis).
+    Start: 180°, end of full arc: 0°. Score 76% means we stop at 180° - 136.8° = 43.2° from positive x-axis.
+    x = 160 + 130*cos(43.2°) = 160 + 130*0.728 = 160 + 94.6 = 254.6
+    y = 145 - 130*sin(43.2°) = 145 - 130*0.684 = 145 - 88.9 = 56.1
+  -->
+  <!-- Score filled arc in amber/green color (score=76 is in amber zone) -->
+  <path d="M 30 145 A 130 130 0 0 1 255 56" fill="none" stroke="#f1c40f" stroke-width="24" stroke-linecap="round"/>
+  <!-- Needle -->
+  <line x1="160" y1="145" x2="237" y2="72" stroke="#1a1a2e" stroke-width="3.5" stroke-linecap="round"/>
+  <circle cx="160" cy="145" r="7" fill="#1a1a2e"/>
+  <!-- Zone labels -->
+  <text x="16" y="165" font-size="10" fill="#c0392b" font-family="Arial, sans-serif" font-weight="bold">0</text>
+  <text x="150" y="10" font-size="10" fill="#888" font-family="Arial, sans-serif">50</text>
+  <text x="275" y="165" font-size="10" fill="#27ae60" font-family="Arial, sans-serif" font-weight="bold">100</text>
+  <text x="60" y="170" font-size="9" fill="#c0392b" font-family="Arial, sans-serif">Systemic concern</text>
+  <text x="214" y="170" font-size="9" fill="#27ae60" font-family="Arial, sans-serif">Low concern</text>
+</svg>
+<div class="gauge-score">76</div>
+<div class="gauge-label">Reference List Integrity Score &nbsp;&bull;&nbsp; <strong style="color:#e67e22;">Amber — Review Recommended (70–84)</strong></div>
+</div>
+
+<!-- Quick-stat cards -->
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="num" style="color:#2c3e50;">26</div>
+    <div class="lbl">References Audited</div>
+  </div>
+  <div class="stat-card stat-high">
+    <div class="num">0</div>
+    <div class="lbl">High-Risk Flags</div>
+  </div>
+  <div class="stat-card stat-elevated">
+    <div class="num">1</div>
+    <div class="lbl">Elevated Flags</div>
+  </div>
+  <div class="stat-card stat-moderate">
+    <div class="num">3</div>
+    <div class="lbl">Moderate Flags</div>
+  </div>
+  <div class="stat-card stat-defensible">
+    <div class="num">22</div>
+    <div class="lbl">Defensible (Verified Clean)</div>
+  </div>
+</div>
+
+<!-- Risk heatmap -->
+<h3>Risk Heatmap — one cell per reference, sequential order</h3>
+<div class="heatmap">
+  <div class="hm-cell hm-D" title="Ref 1: Defensible — KC et al. 2021 EN-BIRTH">1</div>
+  <div class="hm-cell hm-D" title="Ref 2: Defensible — Swedish Medical Birth Register 2021">2</div>
+  <div class="hm-cell hm-M" title="Ref 3: Moderate — ERC Guidelines 2021 (deposit artifact, no DOI)">3</div>
+  <div class="hm-cell hm-D" title="Ref 4: Defensible — Moshiro et al. 2019">4</div>
+  <div class="hm-cell hm-D" title="Ref 5: Defensible — Gillam-Krakauer &amp; Gowen 2017">5</div>
+  <div class="hm-cell hm-D" title="Ref 6: Defensible — Payne et al. 2021">6</div>
+  <div class="hm-cell hm-D" title="Ref 7: Defensible — Isacson et al. 2022 Midwifery">7</div>
+  <div class="hm-cell hm-D" title="Ref 8: Defensible — Isacson et al. 2021 Acta Paediatrica">8</div>
+  <div class="hm-cell hm-D" title="Ref 9: Defensible — Andersson et al. 2019 Nepcord III">9</div>
+  <div class="hm-cell hm-D" title="Ref 10: Defensible — Blank et al. 2018">10</div>
+  <div class="hm-cell hm-D" title="Ref 11: Defensible — WHO 2014">11</div>
+  <div class="hm-cell hm-M" title="Ref 12: Moderate — Thies 2015 IxD&amp;A (non-indexed journal)">12</div>
+  <div class="hm-cell hm-D" title="Ref 13: Defensible — Katheria et al. 2018">13</div>
+  <div class="hm-cell hm-D" title="Ref 14: Defensible — Ekelöf et al. 2022">14</div>
+  <div class="hm-cell hm-D" title="Ref 15: Defensible — Polit &amp; Beck 2017">15</div>
+  <div class="hm-cell hm-D" title="Ref 16: Defensible — Braun &amp; Clarke 2021">16</div>
+  <div class="hm-cell hm-D" title="Ref 17: Defensible — Hennink &amp; Kaiser 2022">17</div>
+  <div class="hm-cell hm-D" title="Ref 18: Defensible — WMA Declaration Helsinki 2013">18</div>
+  <div class="hm-cell hm-D" title="Ref 19: Defensible — GDPR 2016">19</div>
+  <div class="hm-cell hm-D" title="Ref 20: Defensible — Bergman 2019">20</div>
+  <div class="hm-cell hm-D" title="Ref 21: Defensible — Loren et al. 2021">21</div>
+  <div class="hm-cell hm-D" title="Ref 22: Defensible — Raoust et al. 2022">22</div>
+  <div class="hm-cell hm-D" title="Ref 23: Defensible — Rönnerhag et al. 2018">23</div>
+  <div class="hm-cell hm-D" title="Ref 24: Defensible — James-Scotter et al. 2019">24</div>
+  <div class="hm-cell hm-E" title="Ref 25: Elevated — Ungerleider &amp; Ungerleider 2019 (no DOI; cross-journal deposit error; page range unconfirmed)">25</div>
+  <div class="hm-cell hm-D" title="Ref 26: Defensible — Harris et al. 2022">26</div>
+</div>
+<p style="font-size:0.78rem;color:#888;margin-top:-18px;margin-bottom:24px;">
+  <span style="display:inline-block;width:14px;height:14px;background:#c0392b;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>High (H)&nbsp;
+  <span style="display:inline-block;width:14px;height:14px;background:#e67e22;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Elevated (E)&nbsp;
+  <span style="display:inline-block;width:14px;height:14px;background:#f39c12;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Moderate (M)&nbsp;
+  <span style="display:inline-block;width:14px;height:14px;background:#27ae60;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Defensible (D)
+</p>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- SECTION 2: FORENSIC AUDIT TABLE                              -->
+<!-- ============================================================ -->
+<h2>Section 2: Forensic Audit Table</h2>
+
+<table class="audit-table">
+<thead>
+<tr>
+  <th style="width:4%">#</th>
+  <th style="width:36%">Reference (truncated to ~80 chars)</th>
+  <th style="width:22%">Heuristics Triggered</th>
+  <th style="width:24%">Verification Sources</th>
+  <th style="width:10%">Risk Tier</th>
+</tr>
+</thead>
+<tbody>
+
+<tr>
+<td>1</td>
+<td>KC, A. et al. (2021). Neonatal resuscitation: EN-BIRTH multi-country validation study. <em>BMC Pregnancy and Childbirth</em>, 21(Suppl. 1), 235.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1186/s12884-020-03422-9); PMC7995695; authors/title/journal/volume/article# all match</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>2</td>
+<td>Swedish National Board of Health and Welfare. (2021). <em>National Medical Birth Register</em>. Swedish National Board of Health and Welfare.</td>
+<td>None</td>
+<td>Socialstyrelsen.se (confirmed; register active since 1973; annual updates; grey literature — no DOI expected)</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>3</td>
+<td>Madar, J., Roehr, C. C., Ainsworth, S. et al. (2021). European Resuscitation Council Guidelines 2021: Newborn resuscitation… <em>Resuscitation</em>, 161, 291–326.</td>
+<td>H1: DOI absent (known deposit artifact)</td>
+<td>Crossref (correct DOI 10.1016/j.resuscitation.2021.02.017 verified); PubMed 33773829; Semantic Scholar; ScienceDirect; all metadata confirmed</td>
+<td><span class="badge badge-M">M</span></td>
+</tr>
+<tr>
+<td colspan="5">
+<div class="finding-note-M"><strong>Moderate — H1 (calibration finding):</strong> No DOI is present in the reference as submitted; the Crossref deposit contained only a journal-prefix stub ("10.1016/j.resuscitation"), not a resolvable article DOI — a known publisher deposit artifact documented in the source file header. The correct DOI (10.1016/j.resuscitation.2021.02.017) was independently confirmed; it resolves correctly to this ERC 2021 newborn resuscitation guideline. Author list (Madar J, Roehr CC, Ainsworth S, Ersdal H, Morley C, Rüdiger M, Skåre C, Szczapa T, te Pas A, Trevisanuto D, Urlesberger B, Wilkinson D, Wyllie J), journal, volume, and page range 291–326 are all verified. Not an article integrity concern; classified Moderate per the stated calibration protocol.</div>
+</td>
+</tr>
+
+<tr>
+<td>4</td>
+<td>Moshiro, R., Mdoe, P., &amp; Perlman, J. M. (2019). A global view of neonatal asphyxia and resuscitation. <em>Frontiers in Pediatrics</em>, 7, 489.</td>
+<td>None</td>
+<td>Crossref (DOI 10.3389/fped.2019.00489); Frontiers publisher page; title/authors/volume/article# verified</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>5</td>
+<td>Gillam-Krakauer, M., &amp; Gowen, C. W., Jr. (2017). <em>Birth asphyxia</em>. StatPearls Publishing.</td>
+<td>None</td>
+<td>PubMed 28613533; NCBI Bookshelf NBK430782; StatPearls.com; grey literature (continuously updated chapter; 2017 cited year plausible for original publication)</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>6</td>
+<td>Payne, L., Walker, K. F., &amp; Mitchell, E. J. (2021). Timing of umbilical cord clamping for preterm infants in LMICs. <em>European Journal of Obstetrics &amp; Gynecology and Reproductive Biology</em>, 264, 15–20.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1016/j.ejogrb.2021.06.041); ScienceDirect; title/authors/volume/pages verified</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>7</td>
+<td>Isacson, M., Andersson, O., &amp; Thies-Lagergren, L. (2022). Midwives' decision-making process when a non-vigorous neonate is born. <em>Midwifery</em>, 114, 103455.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1016/j.midw.2022.103455); ScienceDirect record S0266613822002066; Lund University LUP; all 3 authors/title/volume/article# confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>8</td>
+<td>Isacson, M., Gurung, R., Basnet, O., Andersson, O., &amp; KC, A. (2021). Neurodevelopmental outcomes of a randomised trial of intact cord resuscitation. <em>Acta Paediatrica</em>, 110(2), 465–472.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1111/apa.15401); Wiley Online Library; PubMed; all 5 authors/title/volume/issue/pages confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>9</td>
+<td>Andersson, O., et al. (2019). Intact cord resuscitation vs. early cord clamping (Nepcord III)… <em>Maternal Health, Neonatology and Perinatology</em>, 5, 15.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1186/s40748-019-0110-z); BioMed Central; PMC6714434; full author list confirmed: Andersson O, Rana N, Ewald U, Målqvist M, Stripple G, Basnet O, Subedi K, KC A; title/journal/volume/article# verified; no retraction found</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>10</td>
+<td>Blank, D. A., Badurdeen, S., Kamlin, C. O. F., Jacobs, S. E., Thio, M., Dawson, J. A. et al. (2018). Baby-directed umbilical cord clamping. <em>Resuscitation</em>, 131, 1–7.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1016/j.resuscitation.2018.07.020); all 11 authors (Blank DA, Badurdeen S, Kamlin COF, Jacobs SE, Thio M, Dawson JA, Kane SC, Dennis AT, Polglase GR, Hooper SB, Davis PG) verified; title/volume/pages confirmed; no retraction found</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>11</td>
+<td>World Health Organization. (2014). <em>Guideline: Delayed umbilical cord clamping for improved maternal and infant health…</em>. World Health Organization.</td>
+<td>None</td>
+<td>NCBI Bookshelf (WHO Guideline 2014); WHO.int; grey literature; document confirmed at https://www.ncbi.nlm.nih.gov/books/NBK310510/</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>12</td>
+<td>Thies, A. (2015). On the value of design thinking for innovation in complex contexts. <em>IxD&amp;A: Interaction Design &amp; Architecture(s)</em>, 27, 159–171.</td>
+<td>H7: Partial shadow-paper concern (non-indexed, non-biomedical journal; non-standard DOI registrar)</td>
+<td>DOI 10.55612/s-5002-027-009 resolves to ixdea.org/27_9/; Semantic Scholar confirms 2015 publication; journal ISSN 1826-9745 verified (founded 2005; diamond OA; University of Rome Tor Vergata); title/author/volume/pages confirmed</td>
+<td><span class="badge badge-M">M</span></td>
+</tr>
+<tr>
+<td colspan="5">
+<div class="finding-note-M"><strong>Moderate — H7 (partial, low confidence):</strong> IxD&amp;A is a legitimate peer-reviewed journal (ISSN 1826-9745; diamond open access; University of Rome Tor Vergata; founded 2005) but is absent from PubMed and most major biomedical indexes and uses a non-standard DOI registrar prefix (10.55612). The cited article — Thies A., "On the value of design thinking for innovation in complex contexts: a case from healthcare," vol. 27, pp. 159–171 (2015) — was confirmed via Semantic Scholar and the journal's own archive (ixdea.org). No fabrication is indicated. This is a scope/relevance editorial note: the journal is outside the standard biomedical canon for a neonatal qualitative interview study. No shadow-paper concern at the article level.</div>
+</td>
+</tr>
+
+<tr>
+<td>13</td>
+<td>Katheria, A. C., Sorkhi, S. R., Hassen, K., Faksh, A., Ghorishi, Z., &amp; Poeltler, D. (2018). Acceptability of bedside resuscitation with intact umbilical cord… <em>Frontiers in Pediatrics</em>, 6, 100.</td>
+<td>None</td>
+<td>Crossref (DOI 10.3389/fped.2018.00100); Frontiers publisher page; all 6 authors/title/volume/article# verified</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>14</td>
+<td>Ekelöf, K., Säther, E., Santesson, A., Wilander, M., Patriksson, K., Hesselman, S. et al. (2022). SAVE-method study protocol. <em>BMC Pregnancy and Childbirth</em>, 22(1), 593.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1186/s12884-022-04915-5); BioMed Central full text; all 9 authors (Ekelöf K, Säther E, Santesson A, Wilander M, Patriksson K, Hesselman S, Thies-Lagergren L, Rabe H, Andersson O) verified; title/volume/issue/article# confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>15</td>
+<td>Polit, D. F., &amp; Beck, C. T. (2017). <em>Nursing research: Generating and assessing evidence for nursing practice</em> (10th ed.). Lippincott Williams &amp; Wilkins.</td>
+<td>None</td>
+<td>WorldCat (OCLC 919860667); Wolters Kluwer/Lippincott; Internet Archive; 10th ed. / 2017 confirmed; publisher commonly cited as Wolters Kluwer or Lippincott (same imprint)</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>16</td>
+<td>Braun, V., &amp; Clarke, V. (2021). <em>Thematic analysis: A practical guide</em>. SAGE Publications.</td>
+<td>None</td>
+<td>SAGE Publications UK; ISBN 9781473953246; BPS Book Award 2022; title/authors/publisher/year confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>17</td>
+<td>Hennink, M., &amp; Kaiser, B. N. (2022). Sample sizes for saturation in qualitative research. <em>Social Science &amp; Medicine</em>, 292, 114523.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1016/j.socscimed.2021.114523); ScienceDirect; title/authors/volume/article# verified</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>18</td>
+<td>World Medical Association. (2013). Declaration of Helsinki: Ethical principles for medical research… <em>JAMA</em>, 310(20), 2191–2194.</td>
+<td>None</td>
+<td>JAMA Network; WMA official site (wma.net); PubMed 25951678; volume/issue/pages confirmed; no DOI cited but widely available; adopted by 64th WMA General Assembly, October 2013</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>19</td>
+<td>European Parliament and Council of the EU. (2016). <em>General Data Protection Regulation (GDPR)</em> (Regulation 2016/679). Official Journal of the EU.</td>
+<td>None</td>
+<td>EUR-Lex (OJ L 119, 4 May 2016, pp. 1–88); gdpr-info.eu; grey literature; regulation confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>20</td>
+<td>Bergman, N. J. (2019). Birth practices: Maternal-neonate separation as a source of toxic stress. <em>Birth Defects Research</em>, 111(15), 1087–1109.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1002/bdr2.1530); Wiley Online Library; PubMed 31157520; author/title/volume/issue/pages verified; published June 3, 2019</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>21</td>
+<td>Loren, D. L., Lyerly, A. D., Lipira, L., Ottosen, M., Namey, E., Benedetti, T. et al. (2021). Communication regarding adverse neonatal birth events. <em>Journal of Patient Safety and Risk Management</em>, 26(5), 200–206.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1177/25160435211017749); SAGE Journals; all 10 authors (Loren DL, Lyerly AD, Lipira L, Ottosen M, Namey E, Benedetti T, Dunlap BS, Thomas EJ, Prouty C, Gallagher TH) verified; volume/issue/pages confirmed; journal confirmed (renamed from Clinical Risk, Jan 2018)</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>22</td>
+<td>Raoust, G. M., Bergström, J., Bolin, M., &amp; Hansson, S. R. (2022). Decision-making during obstetric emergencies: A narrative approach. <em>PLOS ONE</em>, 17(1), e0260277.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1371/journal.pone.0260277); PLOS ONE publisher; all 4 authors/title/volume/issue/article# verified; no retraction found</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>23</td>
+<td>Rönnerhag, M., Severinsson, E., Haruna, M., &amp; Berggren, I. (2018). Qualitative study of women's experiences of safe childbirth in maternity care. <em>Nursing &amp; Health Sciences</em>, 20(3), 331–337.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1111/nhs.12558); Wiley Online Library; all 4 authors/title/volume/issue/pages confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>24</td>
+<td>James-Scotter, M., Walker, C., &amp; Jacobs, S. (2019). An interprofessional perspective on job satisfaction in the operating room. <em>Journal of Interprofessional Care</em>, 33(6), 782–794.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1080/13561820.2019.1593118); Taylor &amp; Francis; all 3 authors/title/volume/issue/pages confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+<tr>
+<td>25</td>
+<td>Ungerleider, R. M., &amp; Ungerleider, J. D. (2019). Whole brain leadership for creating resonant multidisciplinary health care teams. <em>The Annals of Thoracic Surgery</em>, 108(4), 978–986.</td>
+<td>H5: Double-Real / deposit cross-contamination (Crossref deposit assigned this entry the DOI for ref 26); H7: No DOI available for independent resolution; page range could not be confirmed from open-access source</td>
+<td>Ann Thorac Surg publisher (ScienceDirect article S0003-4975(19)30519-3 — 403 response; full text not publicly available); ResearchGate; CTSNet; Semantic Scholar; article existence confirmed in Ann Thorac Surg 2019 vol 108(4); page range 978–986 cited in secondary sources only</td>
+<td><span class="badge badge-E">E</span></td>
+</tr>
+<tr>
+<td colspan="5">
+<div class="finding-note"><strong>Elevated — H5 + H7:</strong> The Crossref deposit for the parent article (Patriksson 2024) attached DOI 10.1016/j.midw.2022.103285 to this entry — a confirmed cross-contamination: that DOI belongs to Harris et al. (Midwifery 2022), ref 26. The reference is correctly presented without a DOI in this submission. Independent web search confirms the Ungerleider &amp; Ungerleider (2019) article exists in <em>The Annals of Thoracic Surgery</em> 108(4), 2019. However, the publisher's full-text page returned HTTP 403 (paywall), preventing direct confirmation of the page range (978–986). Secondary sources (CTSNet, ResearchGate, Semantic Scholar) confirm the article's existence but do not independently confirm the exact page range. The cross-journal nature of this citation (cardiac surgery, in a neonatal/midwifery reference list) adds context but the article topic — creating resonant multidisciplinary health care teams — is substantively relevant. Elevated classification reflects inability to independently confirm page range from an open source, combined with the absence of a DOI. The Crossref deposit error is an artifact, not an article integrity concern.</div>
+</td>
+</tr>
+
+<tr>
+<td>26</td>
+<td>Harris, J., Beck, S., Ayers, N., Bick, D., Lamb, B. W., Aref-Adib, M. et al. (2022). Improving teamwork in maternity services. <em>Midwifery</em>, 108, 103285.</td>
+<td>None</td>
+<td>Crossref (DOI 10.1016/j.midw.2022.103285); ScienceDirect; WRAP Warwick; all 9 authors (Harris J, Beck S, Ayers N, Bick D, Lamb BW, Aref-Adib M, Kelly T, Green JSA, Taylor C) verified; volume/article# confirmed</td>
+<td><span class="badge badge-D">D</span></td>
+</tr>
+
+</tbody>
+</table>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- SECTION 3: RANKED SUSPICION INDEX                            -->
+<!-- ============================================================ -->
+<h2>Section 3: Ranked Suspicion Index</h2>
+
+<p class="body" style="margin-bottom:14px;">No High-tier (H) findings were identified. The list below covers the one Elevated (E) and two substantive Moderate (M) findings (the third Moderate, ref 3, is a calibration-only deposit artifact).</p>
+
+<h3>Elevated (E) — Rank 1</h3>
+
+<div class="si-entry">
+  <h4>Ref #25 — Ungerleider &amp; Ungerleider, <em>The Annals of Thoracic Surgery</em>, 108(4), 978–986 (2019) <span class="badge badge-E" style="float:right">E</span></h4>
+  <p class="finding"><strong>Heuristics triggered:</strong> H5 (Double-Real / deposit cross-contamination); H7 (partial — no DOI; page range unconfirmed)</p>
+  <p class="finding"><strong>Forensic finding:</strong> The parent article's Crossref deposit attached DOI 10.1016/j.midw.2022.103285 (Harris et al., Midwifery 2022 — ref 26) to this reference. This is a documented deposit-level cross-contamination. The reference is presented without a DOI. Independent search confirmed the article's existence in <em>The Annals of Thoracic Surgery</em> 108(4), 2019 (ScienceDirect landing page S0003-4975(19)30519-3; CTSNet; ResearchGate; Semantic Scholar). The article's topic (whole brain leadership for multidisciplinary health care teams) is substantively relevant to teamwork in perinatal care settings. The publisher's full-text page returned HTTP 403 (behind paywall), preventing direct confirmation of the page range 978–986 and first author initials. Secondary sources confirm the citation's existence but do not independently verify the exact pagination.</p>
+  <div class="action"><strong>Recommended editor action (E tier — manual verification before acceptance):</strong> Request that the corresponding author supply a copy of the original article (Ungerleider &amp; Ungerleider, <em>Ann Thorac Surg</em>, 2019) confirming the volume (108), issue (4), and page range (978–986). If the author provides the source document with matching metadata, the reference may be downgraded to Defensible. Additionally, flag to the publisher that DOI 10.1016/j.midw.2022.103285 was misattributed to ref 25 in the Crossref deposit record; it belongs to ref 26 (Harris et al., 2022). Applicable guidance: E-tier manual verification protocol.</div>
+</div>
+
+<h3>Moderate (M) — Rank 2–3</h3>
+
+<div class="si-entry">
+  <h4>Ref #3 — Madar et al. (2021) ERC Guidelines, <em>Resuscitation</em>, 161, 291–326 <span class="badge badge-M" style="float:right">M</span></h4>
+  <p class="finding"><strong>Heuristic triggered:</strong> H1 (DOI absent — confirmed deposit artifact)</p>
+  <p class="finding"><strong>Forensic finding:</strong> No DOI present. The Crossref deposit contained only a journal-prefix stub ("10.1016/j.resuscitation"), not a resolvable article DOI. The correct DOI (10.1016/j.resuscitation.2021.02.017) was independently verified and resolves correctly. All metadata matches. Per the source file's calibration notes, this is classified Moderate (not Elevated or High). No integrity concern.</p>
+  <div class="action"><strong>Recommended editor action:</strong> Add the correct DOI (https://doi.org/10.1016/j.resuscitation.2021.02.017) to the reference at proof stage. No further action required.</div>
+</div>
+
+<div class="si-entry">
+  <h4>Ref #12 — Thies (2015), <em>IxD&amp;A: Interaction Design &amp; Architecture(s)</em>, 27, 159–171 <span class="badge badge-M" style="float:right">M</span></h4>
+  <p class="finding"><strong>Heuristic triggered:</strong> H7 (partial — non-indexed, non-biomedical journal)</p>
+  <p class="finding"><strong>Forensic finding:</strong> The cited article is confirmed (Semantic Scholar; journal archive). IxD&amp;A is a legitimate peer-reviewed journal (ISSN 1826-9745; founded 2005; diamond open access; University of Rome Tor Vergata) but is absent from PubMed and uses a non-standard DOI registrar (10.55612). The citation is a field outlier in a nursing/neonatology reference list. No fabrication concern. Low-priority editorial note only.</p>
+  <div class="action"><strong>Recommended editor action:</strong> Low priority. Editors may query whether the reference adds evidentiary value appropriate to the article's scope (neonatal qualitative interview study), but this is a relevance judgment, not an integrity finding. DOI resolves correctly.</div>
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- SECTION 4: CLEANED APA REFERENCE LIST                        -->
+<!-- ============================================================ -->
+<h2>Section 4: Cleaned APA 7th Edition Reference List</h2>
+<p class="body" style="margin-bottom:14px;font-style:italic;font-size:0.85rem;">Corrections applied: DOI added for ref 3 (deposit artifact); publisher name clarified for ref 15; DOI added for ref 18. Ref 25 flagged — page range unconfirmed. All other references verified as submitted.</p>
+
+<div class="ref-list">
+
+<p>1. KC, A., Peven, K., Ameen, S., Msemo, G., Basnet, O., Ruysen, H., Zaman, S. B., Mkony, M., Sunny, A. K., Rahman, Q. S., Shabani, J., Bastola, R. C., Assenga, E., KC, N. P., El Arifeen, S., Kija, E., Malla, H., Kong, S., Singhal, N., Niermeyer, S., Lincetto, O., Day, L. T., Lawn, J. E., &amp; EN-BIRTH Study Group. (2021). Neonatal resuscitation: EN-BIRTH multi-country validation study. <em>BMC Pregnancy and Childbirth</em>, <em>21</em>(Suppl. 1), Article 235. https://doi.org/10.1186/s12884-020-03422-9</p>
+
+<p>2. Swedish National Board of Health and Welfare. (2021). <em>National medical birth register</em>. Swedish National Board of Health and Welfare.</p>
+
+<p>3. Madar, J., Roehr, C. C., Ainsworth, S., Ersdal, H., Morley, C., Rüdiger, M., Skåre, C., Szczapa, T., te Pas, A., Trevisanuto, D., Urlesberger, B., Wilkinson, D., &amp; Wyllie, J. (2021). European Resuscitation Council guidelines 2021: Newborn resuscitation and support of transition of infants at birth. <em>Resuscitation</em>, <em>161</em>, 291–326. https://doi.org/10.1016/j.resuscitation.2021.02.017 <em>[Correct DOI added; not present in submitted reference due to Crossref deposit artifact — see forensic audit note]</em></p>
+
+<p>4. Moshiro, R., Mdoe, P., &amp; Perlman, J. M. (2019). A global view of neonatal asphyxia and resuscitation. <em>Frontiers in Pediatrics</em>, <em>7</em>, Article 489. https://doi.org/10.3389/fped.2019.00489</p>
+
+<p>5. Gillam-Krakauer, M., &amp; Gowen, C. W., Jr. (2017). Birth asphyxia. In <em>StatPearls</em>. StatPearls Publishing. https://www.ncbi.nlm.nih.gov/books/NBK430782/</p>
+
+<p>6. Payne, L., Walker, K. F., &amp; Mitchell, E. J. (2021). Timing of umbilical cord clamping for preterm infants in low-and-middle-income countries: A survey of current practice. <em>European Journal of Obstetrics &amp; Gynecology and Reproductive Biology</em>, <em>264</em>, 15–20. https://doi.org/10.1016/j.ejogrb.2021.06.041</p>
+
+<p>7. Isacson, M., Andersson, O., &amp; Thies-Lagergren, L. (2022). Midwives' decision-making process when a non-vigorous neonate is born: A Swedish qualitative interview study. <em>Midwifery</em>, <em>114</em>, Article 103455. https://doi.org/10.1016/j.midw.2022.103455</p>
+
+<p>8. Isacson, M., Gurung, R., Basnet, O., Andersson, O., &amp; KC, A. (2021). Neurodevelopmental outcomes of a randomised trial of intact cord resuscitation. <em>Acta Paediatrica</em>, <em>110</em>(2), 465–472. https://doi.org/10.1111/apa.15401</p>
+
+<p>9. Andersson, O., Rana, N., Ewald, U., Målqvist, M., Stripple, G., Basnet, O., Subedi, K., &amp; KC, A. (2019). Intact cord resuscitation versus early cord clamping in the treatment of depressed newborn infants during the first 10 minutes of birth (Nepcord III): A randomized clinical trial. <em>Maternal Health, Neonatology and Perinatology</em>, <em>5</em>, Article 15. https://doi.org/10.1186/s40748-019-0110-z</p>
+
+<p>10. Blank, D. A., Badurdeen, S., Kamlin, C. O. F., Jacobs, S. E., Thio, M., Dawson, J. A., Kane, S. C., Dennis, A. T., Polglase, G. R., Hooper, S. B., &amp; Davis, P. G. (2018). Baby-directed umbilical cord clamping: A feasibility study. <em>Resuscitation</em>, <em>131</em>, 1–7. https://doi.org/10.1016/j.resuscitation.2018.07.020</p>
+
+<p>11. World Health Organization. (2014). <em>Guideline: Delayed umbilical cord clamping for improved maternal and infant health and nutrition outcomes</em>. World Health Organization.</p>
+
+<p>12. Thies, A. (2015). On the value of design thinking for innovation in complex contexts: A case from healthcare. <em>IxD&amp;A: Interaction Design &amp; Architecture(s)</em>, <em>27</em>, 159–171. https://doi.org/10.55612/s-5002-027-009</p>
+
+<p>13. Katheria, A. C., Sorkhi, S. R., Hassen, K., Faksh, A., Ghorishi, Z., &amp; Poeltler, D. (2018). Acceptability of bedside resuscitation with intact umbilical cord to clinicians and patients' families in the United States. <em>Frontiers in Pediatrics</em>, <em>6</em>, Article 100. https://doi.org/10.3389/fped.2018.00100</p>
+
+<p>14. Ekelöf, K., Säther, E., Santesson, A., Wilander, M., Patriksson, K., Hesselman, S., Thies-Lagergren, L., Rabe, H., &amp; Andersson, O. (2022). A hybrid type I, multi-center randomized controlled trial to study the implementation of a method for sustained cord circulation and ventilation (the SAVE-method) of late preterm and term neonates: A study protocol. <em>BMC Pregnancy and Childbirth</em>, <em>22</em>(1), Article 593. https://doi.org/10.1186/s12884-022-04915-5</p>
+
+<p>15. Polit, D. F., &amp; Beck, C. T. (2017). <em>Nursing research: Generating and assessing evidence for nursing practice</em> (10th ed.). Wolters Kluwer/Lippincott Williams &amp; Wilkins. <em>[Publisher "Lippincott Williams &amp; Wilkins" is an imprint of Wolters Kluwer; both forms are acceptable per APA 7]</em></p>
+
+<p>16. Braun, V., &amp; Clarke, V. (2021). <em>Thematic analysis: A practical guide</em>. SAGE Publications.</p>
+
+<p>17. Hennink, M., &amp; Kaiser, B. N. (2022). Sample sizes for saturation in qualitative research: A systematic review of empirical tests. <em>Social Science &amp; Medicine</em>, <em>292</em>, Article 114523. https://doi.org/10.1016/j.socscimed.2021.114523</p>
+
+<p>18. World Medical Association. (2013). World Medical Association Declaration of Helsinki: Ethical principles for medical research involving human subjects. <em>JAMA</em>, <em>310</em>(20), 2191–2194. https://doi.org/10.1001/jama.2013.281053 <em>[DOI added for completeness; not present in submitted reference]</em></p>
+
+<p>19. European Parliament and Council of the European Union. (2016). <em>General data protection regulation (GDPR)</em> (Regulation 2016/679). Official Journal of the European Union, L 119, 1–88.</p>
+
+<p>20. Bergman, N. J. (2019). Birth practices: Maternal-neonate separation as a source of toxic stress. <em>Birth Defects Research</em>, <em>111</em>(15), 1087–1109. https://doi.org/10.1002/bdr2.1530</p>
+
+<p>21. Loren, D. L., Lyerly, A. D., Lipira, L., Ottosen, M., Namey, E., Benedetti, T., Dunlap, B. S., Thomas, E. J., Prouty, C., &amp; Gallagher, T. H. (2021). Communication regarding adverse neonatal birth events: Experiences of parents and clinicians. <em>Journal of Patient Safety and Risk Management</em>, <em>26</em>(5), 200–206. https://doi.org/10.1177/25160435211017749</p>
+
+<p>22. Raoust, G. M., Bergström, J., Bolin, M., &amp; Hansson, S. R. (2022). Decision-making during obstetric emergencies: A narrative approach. <em>PLOS ONE</em>, <em>17</em>(1), Article e0260277. https://doi.org/10.1371/journal.pone.0260277</p>
+
+<p>23. Rönnerhag, M., Severinsson, E., Haruna, M., &amp; Berggren, I. (2018). Qualitative study of women's experiences of safe childbirth in maternity care. <em>Nursing &amp; Health Sciences</em>, <em>20</em>(3), 331–337. https://doi.org/10.1111/nhs.12558</p>
+
+<p>24. James-Scotter, M., Walker, C., &amp; Jacobs, S. (2019). An interprofessional perspective on job satisfaction in the operating room: A review of the literature. <em>Journal of Interprofessional Care</em>, <em>33</em>(6), 782–794. https://doi.org/10.1080/13561820.2019.1593118</p>
+
+<p>25. Ungerleider, R. M., &amp; Ungerleider, J. D. (2019). Whole brain leadership for creating resonant multidisciplinary health care teams. <em>The Annals of Thoracic Surgery</em>, <em>108</em>(4), 978–986. <strong>[FLAGGED — Elevated tier: no DOI available; page range 978–986 not independently confirmed from open-access source; Crossref deposit cross-contamination (DOI of ref 26 was mistakenly attached to this entry). Recommend manual verification before acceptance. See forensic audit, Section 3.]</strong></p>
+
+<p>26. Harris, J., Beck, S., Ayers, N., Bick, D., Lamb, B. W., Aref-Adib, M., Kelly, T., Green, J. S. A., &amp; Taylor, C. (2022). Improving teamwork in maternity services: A rapid review of interventions. <em>Midwifery</em>, <em>108</em>, Article 103285. https://doi.org/10.1016/j.midw.2022.103285</p>
+
+</div>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- SECTION 5: PRISMA-STYLE FLOW DIAGRAM                         -->
+<!-- ============================================================ -->
+<h2>Section 5: Verification Pipeline Flow Diagram</h2>
+
+<div class="flow-wrap">
+
+  <div class="flow-box">26 references submitted (Mode A — reference list only)</div>
+  <div class="flow-arrow">&#8595;</div>
+  <div class="flow-box">Stage 1: Ingestion &amp; normalization<br><span style="font-weight:normal;font-size:0.82rem;">21 DOI-bearing &nbsp;|&nbsp; 5 grey/no-DOI (refs 2, 3&#42;, 5, 11, 19, 25&#42;&#42;; refs 15 &amp; 16 = books)</span></div>
+  <div class="flow-arrow">&#8595;</div>
+  <div class="flow-box">Stage 2: Live verification via web search</div>
+  <div class="flow-arrow">&#8595;</div>
+
+  <div style="display:flex;gap:20px;justify-content:center;width:100%;margin:4px 0;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="flow-box-sm"><strong>DOI-bearing</strong><br>21 references</div>
+      <div style="font-size:1rem;color:#2c5282;">&#8595;</div>
+      <div class="flow-box-sm" style="font-size:0.78rem;text-align:left;padding:8px 10px;">
+        &#10003; Crossref resolution<br>
+        &#10003; Author verification<br>
+        &#10003; Retraction check<br>
+        &#10003; Journal verification<br>
+        &#10003; Temporal plausibility (H9)
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+      <div class="flow-box-sm"><strong>Grey / no-DOI</strong><br>5 references</div>
+      <div style="font-size:1rem;color:#2c5282;">&#8595;</div>
+      <div class="flow-box-sm" style="font-size:0.78rem;text-align:left;padding:8px 10px;">
+        &#10003; Source org. confirmed<br>
+        &#10003; Document plausibility<br>
+        &#10003; URL/archive check<br>
+        &#10003; Temporal plausibility (H9)
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">&#8595;</div>
+  <div class="flow-box">Stage 3: Forensic heuristic battery<br><span style="font-weight:normal;font-size:0.82rem;">Heuristics H1–H7, H9 applied to all 26 references (H8 unavailable in Mode A)</span></div>
+  <div class="flow-arrow">&#8595;</div>
+  <div class="flow-box">Stage 4: Risk tier assignment</div>
+  <div class="flow-arrow">&#8595;</div>
+
+  <div class="flow-results">
+    <div class="flow-tier" style="background:#c0392b;">H<br>0</div>
+    <div class="flow-tier" style="background:#e67e22;">E<br>1</div>
+    <div class="flow-tier" style="background:#f39c12;">M<br>3</div>
+    <div class="flow-tier" style="background:#27ae60;">D<br>22</div>
+  </div>
+
+  <div class="flow-arrow">&#8595;</div>
+  <div class="flow-box" style="background:#fefce8;border-color:#f1c40f;">
+    Reference List Integrity Score: <strong>76 / 100</strong><br>
+    <span style="font-weight:normal;font-size:0.82rem;">Amber zone (70–84) — Review Recommended</span>
+  </div>
+
+</div>
+<p style="font-size:0.78rem;color:#888;margin-top:10px;text-align:center;">
+  &#42; Ref 3: no DOI in submission (Crossref deposit artifact; correct DOI verified independently)<br>
+  &#42;&#42; Ref 25: no DOI in submission (Crossref deposit cross-contamination with ref 26; article confirmed via secondary sources)
+</p>
+
+<hr class="section-divider">
+
+<!-- ============================================================ -->
+<!-- SECTION 6: FORENSIC APPENDIX                                 -->
+<!-- ============================================================ -->
+<h2>Section 6: Forensic Appendix</h2>
+
+<h3>Methodology</h3>
+<p class="body">This audit applied the Forensic Reference-Integrity Auditor v5 protocol to the 26-reference list submitted with Patriksson et al. (2024), operating in Mode A (reference list only). This is the third audit pass against this reference list; the prior two passes identified fabricated author-list errors in an earlier draft, all of which have been corrected. The present audit verified each reference independently without assuming prior corrections were complete. All 21 DOI-bearing references were verified via live web search against Crossref (DOI resolution and metadata cross-check), PubMed/PMC (biomedical citation records), and publisher landing pages (BioMed Central, Elsevier/ScienceDirect, Wiley Online Library, Frontiers, PLOS ONE, SAGE Journals, Taylor &amp; Francis). Five references without DOIs (refs 2, 3, 5, 11, 19, 25) were verified via source organization websites, NCBI Bookshelf, EUR-Lex, and secondary citation databases. Retraction Watch was searched for all primary study authors; no retractions were identified. Eight heuristics (H1–H7, H9) were applied to every reference; Heuristic 8 (sneaked reference) is unavailable in Mode A. No submission date was present in the reference file, so the post-submission sub-check of H9 was not applicable; all other H9 checks (journal founding date, volume/issue plausibility) were performed. Risk tier assignments follow the v5 criteria; the integrity score formula is: 100 − (H×12) − (E×5) − (M×2) − (D×3).</p>
+
+<h3>Heuristic Definitions</h3>
+<table class="app-table">
+<thead>
+<tr><th style="width:6%">ID</th><th style="width:20%">Name</th><th>Definition</th><th style="width:12%">Fired on</th></tr>
+</thead>
+<tbody>
+<tr><td>H1</td><td>DOI Resolution Failure</td><td>DOI does not resolve, resolves to a 404 or redirect loop, or the landing page describes a materially different paper.</td><td>Ref 3 (M)</td></tr>
+<tr><td>H2</td><td>Homoglyph Substitution</td><td>Non-ASCII Unicode lookalike characters substituted for Latin characters in author names, titles, or journal names to defeat string-matching.</td><td>None</td></tr>
+<tr><td>H3</td><td>Digit-Swap Analysis</td><td>Transposed or subtly altered volume, issue, page, year, or DOI digit sequences making a real citation unfindable by database lookup.</td><td>None</td></tr>
+<tr><td>H4</td><td>Author-Shifting</td><td>Author list differs from the publisher record in any position, including reordering, missing authors, added authors, or substitutions.</td><td>None</td></tr>
+<tr><td>H5</td><td>Double-Real Trap</td><td>A real DOI paired with metadata from a completely different real paper; resolves correctly but to the wrong article.</td><td>Ref 25 (E) — deposit cross-contamination</td></tr>
+<tr><td>H6</td><td>Journal Mutation</td><td>Journal name differs from known journals, or journal differs from the one associated with the resolved DOI.</td><td>None (considered for ref 25; dismissed — journal confirmed)</td></tr>
+<tr><td>H7</td><td>Shadow-Paper Signature</td><td>No publication matching the cited metadata can be found across Crossref, PubMed, and the publisher's own archive.</td><td>Ref 12 (M, partial); Ref 25 (E, partial — page range unconfirmed)</td></tr>
+<tr><td>H8</td><td>Sneaked Reference</td><td>Reference appears in the list but is never cited in the manuscript body. Mode B only — not applied in this audit.</td><td>N/A (Mode A)</td></tr>
+<tr><td>H9</td><td>Temporal Impossibility</td><td>Cited year predates journal founding, postdates manuscript submission (if known), or cited volume/issue cannot exist for the stated year.</td><td>None</td></tr>
+</tbody>
+</table>
+
+<h3>Scoring Explanation</h3>
+<p class="body"><strong>Formula:</strong> Score = 100 &minus; (H &times; 12) &minus; (E &times; 5) &minus; (M &times; 2) &minus; (D &times; 3)</p>
+<p class="body"><strong>This audit:</strong> 100 &minus; (0 &times; 12) &minus; (1 &times; 5) &minus; (3 &times; 2) &minus; (22 &times; 3) = 100 &minus; 0 &minus; 5 &minus; 6 &minus; 66 = <strong>76</strong></p>
+<p class="body">The D-penalty (×3) is intentional: it reflects that even verified references carry residual editorial uncertainty. A 26-reference list in which every reference is Defensible would score 22 (26×3) points below the theoretical maximum of 100. The amber score of 76 in this audit reflects primarily the D-penalty on 22 clean references (−66 points), with small contributions from one Elevated finding (−5) and three Moderate findings (−6). The substantive anomaly is the single Elevated finding on ref 25 — a Crossref deposit artifact, not an authorial fabrication. This is a strong result for a false-positive calibration run against a published BMC article.</p>
+
+<p class="body"><strong>Score interpretation guide:</strong></p>
+<ul class="body-list">
+  <li><strong>85–100 (green):</strong> Low concern. Reference list is well-verified; proceed without editorial escalation.</li>
+  <li><strong>70–84 (amber):</strong> Review recommended. One or more anomalies warrant manual verification before acceptance.</li>
+  <li><strong>50–69 (orange):</strong> Escalate. Multiple serious anomalies; initiate author query and consider editorial investigation.</li>
+  <li><strong>Below 50 (red):</strong> Systemic concern. Evidence of widespread fabrication or manipulation; initiate COPE investigation procedures.</li>
+</ul>
+
+<h3>Audit Limitations</h3>
+<ul class="body-list">
+  <li>Grey literature without publicly accessible URLs (e.g., ref 2 — Swedish National Medical Birth Register; ref 11 — WHO Guideline, ref 19 — GDPR) cannot be independently verified beyond confirming the source organization's existence and the document type.</li>
+  <li>Shadow-paper detection depends on database coverage. Very recent fabrications may not yet appear in indexed sources. The IxD&amp;A journal (ref 12) is absent from PubMed but is a legitimate publication venue.</li>
+  <li>Heuristic 8 (sneaked-reference detection) is unavailable in Mode A. Editors should verify that all 26 references have corresponding in-text citations in the full manuscript.</li>
+  <li>Temporal impossibility checks (H9 — post-submission sub-check) could not be applied because no manuscript submission date appears in the reference file. The founding-date and volume/issue sub-checks were applied to all references with no anomalies found.</li>
+  <li>The Annals of Thoracic Surgery (ref 25) returned HTTP 403 (paywall), preventing direct full-text verification of the page range 978–986. This limitation contributed to the Elevated classification for ref 25.</li>
+  <li>Ref 3 author name: the Crossref deposit shows "Madara J." (single-character typo for "Madar J.") — the reference file correctly presents "Madar J." This deposit typo is noted but does not affect the audit classification.</li>
+  <li>This audit is a forensic tool, not a definitive determination of fraud. Findings inform editorial judgment; they do not replace it.</li>
+</ul>
+
+<h3>COPE Alignment</h3>
+<p class="body">This audit's recommendations are structured in accordance with COPE's Core Practices and investigation flowcharts (publicationethics.org/guidance/Flowcharts). <strong>No High-risk findings were identified in this audit.</strong> The one Elevated finding (ref 25) arises from a confirmed Crossref deposit artifact and does not reach the threshold for a COPE investigation. The applicable flowchart is provided below for editorial completeness.</p>
+
+<table class="app-table">
+<thead>
+<tr><th>Finding Type</th><th>Applicable COPE Flowchart</th><th>Escalation Sequence</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>Fabricated or falsified data suspected — submitted manuscript (H1, H3, H5, H7, H9)</td>
+  <td>Suspected Fabricated Data in a Submitted Manuscript</td>
+  <td>Author query → editorial investigation → reject and notify publisher</td>
+</tr>
+<tr>
+  <td>Fabricated or falsified data suspected — published article (H1, H3, H5, H7, H9)</td>
+  <td>Suspected Fabricated Data in a Published Article</td>
+  <td>Author query → editorial/publisher investigation → correction, expression of concern, or retraction</td>
+</tr>
+<tr>
+  <td>Author-list manipulation — credit dispute (H4)</td>
+  <td>Authorship Disputes</td>
+  <td>Author query → editorial investigation → involve institution if unresolved</td>
+</tr>
+<tr>
+  <td>Undisclosed authorship contribution suspected (H4)</td>
+  <td>Suspected Ghost, Gift, or Guest Authorship</td>
+  <td>Author query → editorial investigation → publisher notification</td>
+</tr>
+<tr>
+  <td>Duplicate or redundant publication</td>
+  <td>Suspected Redundant (Duplicate) Publication</td>
+  <td>Author query → editorial investigation → publisher notification</td>
+</tr>
+</tbody>
+</table>
+
+<p class="body"><strong>Escalation levels (standard reference):</strong></p>
+<ol class="body-list">
+  <li><strong>Author query</strong> — Contact the corresponding author for documentation. Request original source copies, library access records, or DOI resolution screenshots for flagged references. Author query is always the first step.</li>
+  <li><strong>Editorial investigation</strong> — Convene an independent editorial review. Do not rely solely on author-supplied documentation for confirmed H-tier findings.</li>
+  <li><strong>Publisher or institution notification</strong> — For confirmed fabrication, notify the publisher and/or the author's institution per COPE guidelines. For published articles, consider correction, expression of concern, or retraction as appropriate.</li>
+</ol>
+
+<p class="body" style="margin-top:14px;font-style:italic;font-size:0.87rem;">No High-risk references were identified in this audit. COPE investigation procedures at the editorial-investigation or publisher-notification level are not triggered. The Elevated finding (ref 25) warrants the first-step E-tier action: author query requesting documentation of the page range, before acceptance.</p>
+
+<p class="body" style="margin-top:14px;font-size:0.82rem;color:#666;"><strong>COPE methodology reference:</strong> This audit's recommendations are structured in accordance with COPE's Core Practices and the investigation flowcharts available at publicationethics.org. COPE guidelines represent consensus best practice in academic publishing; they are not legally binding but are widely adopted by publishers and institutions as the standard for research integrity response. The COPE flowcharts cited are the versions current as of the audit date (2026-06-19).</p>
+
+<hr class="section-divider">
+<p style="font-size:0.75rem;color:#aaa;text-align:center;margin-top:24px;padding-top:12px;">
+  Forensic Reference-Integrity Auditor v5 &nbsp;&bull;&nbsp; Audit date: 2026-06-19 &nbsp;&bull;&nbsp; Mode A (reference list only) &nbsp;&bull;&nbsp; 26 references &nbsp;&bull;&nbsp; Score: 76/100 (Amber)
+</p>
+
+</div><!-- end page-wrap -->
+</body>
+</html>
