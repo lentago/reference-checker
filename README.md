@@ -1,5 +1,7 @@
 # Forensic Reference-Integrity Auditor
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/lentago/reference-checker)
+
 A prompt-engineered deep-scan verification system for academic reference lists. Built for managing editors in nursing and health sciences publishing who need to catch fabricated, manipulated, and suspicious citations before they reach print.
 
 **Authorship:** The prompts, documentation, and test sets in this repo are co-written with [Claude](https://claude.ai) (Anthropic). I direct the work and review the output; Claude writes the prompts. I'm an infrastructure operator, not a software engineer — please don't read this repo as a portfolio of coding ability.
